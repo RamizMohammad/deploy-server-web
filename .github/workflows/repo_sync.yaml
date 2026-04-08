@@ -27,6 +27,35 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
           git remote add target git@github.com:RamizMohammad/deploy-server-web.git
           git push target web:main --force
+
+      - name: Notify Telegram (success)
+        if: success()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode="Markdown" \
+            -d text="✅ *deploy-server-web synced*
+          
+          *Repo:* deploy-server → deploy-server-web
+          *Branch:* web → main
+          *Commit:* \`${{ github.sha }}\`
+          *By:* ${{ github.actor }}
+          *Message:* ${{ github.event.head_commit.message }}"
+
+      - name: Notify Telegram (failure)
+        if: failure()
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+            -d chat_id="${{ secrets.TELEGRAM_CHAT_ID }}" \
+            -d parse_mode="Markdown" \
+            -d text="❌ *deploy-server-web sync FAILED*
+          
+          *Repo:* deploy-server → deploy-server-web
+          *Branch:* web → main
+          *Commit:* \`${{ github.sha }}\`
+          *By:* ${{ github.actor }}
+          *Message:* ${{ github.event.head_commit.message }}
+          
+          [View Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
