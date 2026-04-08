@@ -1,20 +1,31 @@
 from fastapi import FastAPI
-from app.routes import auth_routes
-from app.database import engine, Base
+from fastapi.middleware.cors import CORSMiddleware
 
-# 🔥 IMPORTANT: import models so SQLAlchemy knows them
-from app.models import user, refresh_token
+from app.config import CORS_ORIGINS
+from app.database import Base, engine
+from app.github.github_routes import router as github_router
 
-app = FastAPI(title="DeployX Auth Service")
+app = FastAPI()
 
 
-# 🔥 CREATE TABLES ON STARTUP
 @app.on_event("startup")
-def startup():
+def on_startup():
     Base.metadata.create_all(bind=engine)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-app.include_router(auth_routes.router, prefix="/auth")
+app.include_router(github_router)
+
+
+@app.get("/")
+def root():
+    return {"message": "DeployX API running"}
 
 
 @app.get("/health")
