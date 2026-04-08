@@ -16,12 +16,17 @@ jobs:
           ref: web
           fetch-depth: 0
 
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_WEB_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
       - name: Push to deploy-server-web
-        env:
-          TARGET_REPO: https://x-access-token:${{ secrets.DEPLOY_WEB_TOKEN }}@github.com/RamizMohammad/deploy-server-web.git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git remote add target $TARGET_REPO
+          git remote add target git@github.com:RamizMohammad/deploy-server-web.git
           git push target web:main --force
