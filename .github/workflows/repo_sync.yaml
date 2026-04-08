@@ -1,0 +1,27 @@
+name: Sync web to deploy-server-web
+
+on:
+  push:
+    branches:
+      - web
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout deploy-server (web branch)
+        uses: actions/checkout@v4
+        with:
+          ref: web
+          fetch-depth: 0
+
+      - name: Push to deploy-server-web
+        env:
+          TARGET_REPO: https://x-access-token:${{ secrets.DEPLOY_WEB_TOKEN }}@github.com/RamizMohammad/deploy-server-web.git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git remote add target $TARGET_REPO
+          git push target web:main --force
