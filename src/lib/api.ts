@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8001";
+const API_BASE = "https://deploy-server-pbdo.onrender.com";
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem("deployx_token");
