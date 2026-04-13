@@ -164,7 +164,7 @@ export default function LandingPage() {
             <Button size="lg" className="bg-foreground text-background hover:bg-foreground/90 gap-2" onClick={() => navigate("/login")}>
               Start Deploying <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" className="gap-2 border-border/50 hover:bg-secondary/50">
+            <Button size="lg" variant="outline" className="gap-2 border-border/50 hover:bg-secondary/50" onClick={() => navigate("/login")}>
               <Github className="h-4 w-4" /> Login with GitHub
             </Button>
           </motion.div>

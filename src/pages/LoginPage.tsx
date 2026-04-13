@@ -4,14 +4,22 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Rocket, Github, Mail } from "lucide-react";
+import { loginWithGithub, isAuthenticated } from "@/lib/api";
+import { useEffect } from "react";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  useEffect(() => {
+    if (isAuthenticated()) {
+      navigate("/app", { replace: true });
+    }
+  }, [navigate]);
+
+  const handleGithubLogin = () => {
     setLoading(true);
-    setTimeout(() => navigate("/app"), 1000);
+    loginWithGithub();
   };
 
   return (
@@ -61,9 +69,9 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold text-foreground mb-2">Welcome back</h1>
           <p className="text-muted-foreground mb-8">Sign in to your account to continue</p>
 
-          <Button onClick={handleLogin} disabled={loading} className="w-full bg-foreground text-background hover:bg-foreground/90 gap-2 mb-4 h-11">
+          <Button onClick={handleGithubLogin} disabled={loading} className="w-full bg-foreground text-background hover:bg-foreground/90 gap-2 mb-4 h-11">
             <Github className="h-4 w-4" />
-            {loading ? "Connecting..." : "Continue with GitHub"}
+            {loading ? "Redirecting to GitHub..." : "Continue with GitHub"}
           </Button>
 
           <div className="relative my-6">
@@ -74,15 +82,15 @@ export default function LoginPage() {
           <div className="space-y-3">
             <Input placeholder="Email" className="bg-secondary/50 border-border/50 h-11" />
             <Input type="password" placeholder="Password" className="bg-secondary/50 border-border/50 h-11" />
-            <Button onClick={handleLogin} disabled={loading} variant="outline" className="w-full h-11 border-border/50 hover:bg-secondary/50 gap-2">
+            <Button disabled variant="outline" className="w-full h-11 border-border/50 hover:bg-secondary/50 gap-2 opacity-50 cursor-not-allowed">
               <Mail className="h-4 w-4" />
-              Sign in with Email
+              Sign in with Email (coming soon)
             </Button>
           </div>
 
           <p className="text-xs text-muted-foreground text-center mt-8">
             Don't have an account?{" "}
-            <button onClick={handleLogin} className="text-primary hover:underline">Sign up</button>
+            <button onClick={handleGithubLogin} className="text-primary hover:underline">Sign up with GitHub</button>
           </p>
         </motion.div>
       </div>

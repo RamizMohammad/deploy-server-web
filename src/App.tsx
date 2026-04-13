@@ -4,7 +4,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
+import AuthCallback from "./pages/AuthCallback";
 import { AppLayout } from "./components/AppLayout";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import DashboardOverview from "./pages/app/DashboardOverview";
 import ProjectsList from "./pages/app/ProjectsList";
 import ProjectDetailPage from "./pages/app/ProjectDetailPage";
@@ -22,7 +24,8 @@ const App = () => (
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/app" element={<AppLayout />}>
+        <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
           <Route index element={<DashboardOverview />} />
           <Route path="projects" element={<ProjectsList />} />
           <Route path="projects/:id" element={<ProjectDetailPage />} />
