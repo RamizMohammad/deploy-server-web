@@ -11,7 +11,7 @@ const AuthCallback = () => {
     const token = searchParams.get("token");
     if (token) {
       setToken(token);
-      navigate("/dashboard", { replace: true });
+      navigate("/app", { replace: true });
     } else {
       navigate("/", { replace: true });
     }
