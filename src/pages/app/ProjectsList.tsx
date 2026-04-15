@@ -1,16 +1,17 @@
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDeploymentStore } from "@/stores/deploymentStore";
+import { api, type Deployment, type Project } from "@/lib/api";
 import { motion } from "framer-motion";
 import { FolderGit2, Search, Plus, Clock, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
 
 const StatusBadge = ({ status }: { status: string }) => {
   const map: Record<string, { bg: string; text: string; label: string }> = {
-    live: { bg: "bg-success/10 border-success/20", text: "text-success", label: "Live" },
+    success: { bg: "bg-success/10 border-success/20", text: "text-success", label: "Live" },
     building: { bg: "bg-warning/10 border-warning/20", text: "text-warning", label: "Building" },
     failed: { bg: "bg-destructive/10 border-destructive/20", text: "text-destructive", label: "Failed" },
+    queued: { bg: "bg-muted border-border", text: "text-muted-foreground", label: "Queued" },
     idle: { bg: "bg-muted border-border", text: "text-muted-foreground", label: "Idle" },
   };
   const s = map[status] || map.idle;
@@ -18,12 +19,47 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 export default function ProjectsList() {
-  const { projects } = useDeploymentStore();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
 
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const [projectsData, deploymentsData] = await Promise.all([
+          api.get<Project[]>("/projects"),
+          api.get<Deployment[]>("/deployments"),
+        ]);
+        if (!mounted) return;
+        setProjects(projectsData);
+        setDeployments(deploymentsData);
+      } catch {
+        if (!mounted) return;
+        setProjects([]);
+        setDeployments([]);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const latestStatusByProject = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const d of deployments) {
+      if (!map.has(d.project_name)) {
+        map.set(d.project_name, d.status);
+      }
+    }
+    return map;
+  }, [deployments]);
+
   const filtered = projects.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase()) || p.repo.toLowerCase().includes(search.toLowerCase())
+    p.repo_name.toLowerCase().includes(search.toLowerCase()) ||
+    p.repo_url.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -62,17 +98,17 @@ export default function ProjectsList() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2.5">
-                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">{p.name}</h3>
-                    <StatusBadge status={p.status} />
+                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">{p.repo_name}</h3>
+                    <StatusBadge status={latestStatusByProject.get(p.repo_name) || "idle"} />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5 font-mono">{p.repo}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 font-mono">{p.repo_url}</p>
                 </div>
               </div>
               <div className="flex items-center gap-5">
                 <div className="text-right hidden sm:block">
-                  <p className="text-xs text-muted-foreground">{p.framework}</p>
+                  <p className="text-xs text-muted-foreground">{p.branch}</p>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                    <Clock className="h-3 w-3" /> {new Date(p.updatedAt).toLocaleDateString()}
+                    <Clock className="h-3 w-3" /> {new Date(p.created_at).toLocaleDateString()}
                   </div>
                 </div>
                 <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />

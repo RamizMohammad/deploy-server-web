@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { useDeploymentStore } from "@/stores/deploymentStore";
+import { removeToken } from "@/lib/api";
 import {
   Sidebar,
   SidebarContent,
@@ -23,11 +23,22 @@ const navItems = [
   { title: "Settings", url: "/app/settings", icon: Settings },
 ];
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  onOpenCommandPalette: () => void;
+}
+
+export function AppSidebar({ onOpenCommandPalette }: AppSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
-  const { setCommandPaletteOpen } = useDeploymentStore();
+  const location = useLocation();
+
+  const handleSignOut = () => {
+    removeToken();
+    if (location.pathname !== "/login") {
+      navigate("/login");
+    }
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/30">
@@ -39,7 +50,7 @@ export function AppSidebar() {
       {!collapsed && (
         <div className="px-3 pt-3">
           <button
-            onClick={() => setCommandPaletteOpen(true)}
+            onClick={() => onOpenCommandPalette()}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground bg-secondary/50 border border-border/30 hover:border-border/60 transition-colors"
           >
             <Search className="h-3.5 w-3.5" />
@@ -71,7 +82,7 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-border/30 p-3">
         <button
-          onClick={() => navigate("/")}
+          onClick={handleSignOut}
           className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
         >
           <LogOut className="h-4 w-4" />

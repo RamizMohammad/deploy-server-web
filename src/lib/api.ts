@@ -1,4 +1,4 @@
-const API_BASE = "https://server.api.launchly.systems";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "https://server.api.launchly.systems").replace(/\/$/, "");
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem("deployx_token");
@@ -16,8 +16,14 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
       localStorage.removeItem("deployx_token");
       window.location.href = "/";
     }
-    throw new Error(`API Error: ${res.status}`);
+    const errorBody = await res.text();
+    throw new Error(errorBody || `API Error: ${res.status}`);
   }
+
+  if (res.status === 204) {
+    return undefined as T;
+  }
+
   return res.json();
 }
 
@@ -67,9 +73,11 @@ export interface Deployment {
   project_name: string;
   status: "building" | "success" | "failed" | "queued";
   created_at: string;
-  commit_message?: string;
+  commit_hash?: string;
   branch?: string;
   duration?: number;
+  logs?: string;
+  port?: number;
 }
 
 export interface DashboardStats {
@@ -77,4 +85,17 @@ export interface DashboardStats {
   total_deployments: number;
   successful_builds: number;
   failed_builds: number;
+}
+
+export interface Project {
+  id: string;
+  repo_name: string;
+  repo_url: string;
+  branch: string;
+  created_at: string;
+}
+
+export interface DeploymentLogsResponse {
+  logs: string;
+  status: string;
 }

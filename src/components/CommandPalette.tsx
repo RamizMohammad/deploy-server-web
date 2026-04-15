@@ -1,6 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDeploymentStore } from "@/stores/deploymentStore";
 import {
   CommandDialog,
   CommandEmpty,
@@ -11,29 +10,66 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import { FolderGit2, Rocket, Globe, Settings, LayoutDashboard, Play } from "lucide-react";
+import { api, type Project } from "@/lib/api";
+import { toast } from "sonner";
 
-export const CommandPalette = () => {
+interface CommandPaletteProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
   const navigate = useNavigate();
-  const { commandPaletteOpen, setCommandPaletteOpen, projects, startDeployment } = useDeploymentStore();
+  const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
-        setCommandPaletteOpen(!commandPaletteOpen);
+        onOpenChange(!open);
       }
     };
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
-  }, [commandPaletteOpen, setCommandPaletteOpen]);
+  }, [onOpenChange, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    let mounted = true;
+    api.get<Project[]>("/projects")
+      .then((data) => {
+        if (!mounted) return;
+        setProjects(data);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setProjects([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [open]);
 
   const run = (fn: () => void) => {
     fn();
-    setCommandPaletteOpen(false);
+    onOpenChange(false);
+  };
+
+  const triggerDeploy = async (project: Project) => {
+    try {
+      await api.post("/deploy", {
+        repo_name: project.repo_name,
+        branch: project.branch || "main",
+      });
+      toast.success(`Deployment started for ${project.repo_name}`);
+      run(() => navigate(`/app/projects/${project.id}`));
+    } catch {
+      toast.error("Failed to start deployment.");
+    }
   };
 
   return (
-    <CommandDialog open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen}>
+    <CommandDialog open={open} onOpenChange={onOpenChange}>
       <CommandInput placeholder="Search projects, actions..." />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
@@ -55,15 +91,15 @@ export const CommandPalette = () => {
         <CommandGroup heading="Projects">
           {projects.map((p) => (
             <CommandItem key={p.id} onSelect={() => run(() => navigate(`/app/projects/${p.id}`))}>
-              <FolderGit2 className="mr-2 h-4 w-4" /> {p.name}
+              <FolderGit2 className="mr-2 h-4 w-4" /> {p.repo_name}
             </CommandItem>
           ))}
         </CommandGroup>
         <CommandSeparator />
         <CommandGroup heading="Actions">
           {projects.map((p) => (
-            <CommandItem key={p.id} onSelect={() => run(() => { startDeployment(p.id); navigate(`/app/projects/${p.id}`); })}>
-              <Play className="mr-2 h-4 w-4" /> Deploy {p.name}
+            <CommandItem key={`deploy-${p.id}`} onSelect={() => triggerDeploy(p)}>
+              <Play className="mr-2 h-4 w-4" /> Deploy {p.repo_name}
             </CommandItem>
           ))}
           <CommandItem onSelect={() => run(() => navigate("/app/new"))}>

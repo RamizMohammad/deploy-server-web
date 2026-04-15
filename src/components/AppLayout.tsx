@@ -1,13 +1,16 @@
 import { Outlet } from "react-router-dom";
+import { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { CommandPalette } from "@/components/CommandPalette";
 
 export function AppLayout() {
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <AppSidebar />
+        <AppSidebar onOpenCommandPalette={() => setCommandPaletteOpen(true)} />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="h-14 flex items-center border-b border-border/30 px-4 shrink-0">
             <SidebarTrigger className="mr-4" />
@@ -18,7 +21,7 @@ export function AppLayout() {
           </main>
         </div>
       </div>
-      <CommandPalette />
+      <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
     </SidebarProvider>
   );
 }
