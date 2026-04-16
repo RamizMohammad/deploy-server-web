@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -6,34 +6,16 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Search, Lock, Globe, GitBranch, Loader2, Rocket } from "lucide-react";
 import { api, type GithubRepo } from "@/lib/api";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { githubReposQueryOptions, queryKeys } from "@/lib/query";
 
 export default function NewProjectPage() {
   const navigate = useNavigate();
-  const [repos, setRepos] = useState<GithubRepo[]>([]);
-  const [loading, setLoading] = useState(true);
   const [deployingRepoId, setDeployingRepoId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      setLoading(true);
-      try {
-        const data = await api.get<GithubRepo[]>("/auth/github/repos");
-        if (!mounted) return;
-        setRepos(data);
-      } catch {
-        if (!mounted) return;
-        setRepos([]);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const { data: repos = [], isLoading } = useQuery(githubReposQueryOptions);
 
   const filtered = useMemo(
     () => repos.filter((r) =>
@@ -50,6 +32,10 @@ export default function NewProjectPage() {
         repo_name: repo.name,
         branch: repo.default_branch || "main",
       });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.projects }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.deployments }),
+      ]);
       toast.success(`Deployment started for ${repo.name}`);
       navigate("/app/projects");
     } catch {
@@ -74,7 +60,7 @@ export default function NewProjectPage() {
           <Input placeholder="Search repositories..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-secondary/50 border-border/50" />
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <div className="glass rounded-xl p-10 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">Loading repositories...</p>

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { getToken, removeToken, isAuthenticated as checkAuth } from "@/lib/api";
+import { queryClient } from "@/lib/query";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -17,6 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     removeToken();
+    queryClient.clear();
     setAuthed(false);
     window.location.href = "/";
   };

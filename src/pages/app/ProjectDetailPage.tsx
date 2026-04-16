@@ -3,9 +3,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { api, type Deployment, type DeploymentLogsResponse, type Project } from "@/lib/api";
+import { api } from "@/lib/api";
 import { ArrowLeft, RotateCcw, ExternalLink, GitBranch, Clock, Terminal, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { deploymentLogsQueryOptions, deploymentsQueryOptions, projectQueryOptions, queryKeys } from "@/lib/query";
 
 const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
   success: { color: "text-success", bg: "bg-success/10 border-success/20", label: "Live" },
@@ -29,60 +31,48 @@ const StatusBadge = ({ status }: { status: string }) => {
 export default function ProjectDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [project, setProject] = useState<Project | null>(null);
-  const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [selectedDeploymentId, setSelectedDeploymentId] = useState<string | null>(null);
-  const [selectedLogs, setSelectedLogs] = useState<string>("");
-  const [loading, setLoading] = useState(true);
   const [deploying, setDeploying] = useState(false);
+  const queryClient = useQueryClient();
 
-  const loadData = async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      const currentProject = await api.get<Project>(`/projects/${id}`);
-      const allDeployments = await api.get<Deployment[]>("/deployments");
-      const projectDeployments = allDeployments.filter((d) => d.project_name === currentProject.repo_name);
-      setProject(currentProject);
-      setDeployments(projectDeployments);
+  const { data: project, isLoading: projectLoading } = useQuery({
+    ...projectQueryOptions(id ?? ""),
+    enabled: Boolean(id),
+  });
 
-      if (projectDeployments.length > 0) {
-        const first = projectDeployments[0];
-        setSelectedDeploymentId(first.id);
-        const logs = await api.get<DeploymentLogsResponse>(`/deployments/${first.id}/logs`);
-        setSelectedLogs(logs.logs || "");
-      } else {
-        setSelectedDeploymentId(null);
-        setSelectedLogs("");
-      }
-    } catch {
-      setProject(null);
-      setDeployments([]);
-      setSelectedDeploymentId(null);
-      setSelectedLogs("");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: allDeployments = [], isLoading: deploymentsLoading } = useQuery(deploymentsQueryOptions);
+
+  const deployments = useMemo(() => {
+    if (!project) return [];
+    return allDeployments.filter((deployment) => deployment.project_name === project.repo_name);
+  }, [allDeployments, project]);
 
   useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+    if (deployments.length === 0) {
+      setSelectedDeploymentId(null);
+      return;
+    }
+
+    const selectedStillExists = deployments.some((deployment) => deployment.id === selectedDeploymentId);
+    if (!selectedDeploymentId || !selectedStillExists) {
+      setSelectedDeploymentId(deployments[0].id);
+    }
+  }, [deployments, selectedDeploymentId]);
 
   const selectedDeployment = useMemo(
     () => deployments.find((d) => d.id === selectedDeploymentId) || null,
     [deployments, selectedDeploymentId]
   );
 
-  const openDeploymentLogs = async (deploymentId: string) => {
+  const { data: selectedLogsResponse } = useQuery({
+    ...deploymentLogsQueryOptions(selectedDeploymentId ?? ""),
+    enabled: Boolean(selectedDeploymentId),
+  });
+
+  const selectedLogs = selectedLogsResponse?.logs || "";
+
+  const openDeploymentLogs = (deploymentId: string) => {
     setSelectedDeploymentId(deploymentId);
-    try {
-      const logs = await api.get<DeploymentLogsResponse>(`/deployments/${deploymentId}/logs`);
-      setSelectedLogs(logs.logs || "");
-    } catch {
-      setSelectedLogs("");
-    }
   };
 
   const handleRedeploy = async () => {
@@ -94,7 +84,11 @@ export default function ProjectDetailPage() {
         branch: project.branch || "main",
       });
       toast.success("Redeployment started");
-      await loadData();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.projects }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.project(project.id) }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.deployments }),
+      ]);
     } catch {
       toast.error("Redeployment failed");
     } finally {
@@ -104,7 +98,7 @@ export default function ProjectDetailPage() {
 
   if (!id) return null;
 
-  if (loading) {
+  if (projectLoading || deploymentsLoading) {
     return (
       <div className="p-8">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { setToken } from "@/lib/api";
+import { queryClient } from "@/lib/query";
 import { Loader2 } from "lucide-react";
 
 const AuthCallback = () => {
@@ -10,6 +11,7 @@ const AuthCallback = () => {
   useEffect(() => {
     const token = searchParams.get("token");
     if (token) {
+      queryClient.clear();
       setToken(token);
       navigate("/app", { replace: true });
     } else {
