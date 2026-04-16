@@ -11,6 +11,26 @@ import { queryKeys } from "@/lib/query";
 
 const REPO_BATCH_SIZE = 10;
 const REPO_PRELOAD_OFFSET = 3; // Trigger around item 7/8 in a 10-item batch
+const REPO_CACHE_KEY = "launchly:github_repos:first_page:v1";
+
+function readCachedFirstPage(): GithubRepo[] {
+  try {
+    const raw = localStorage.getItem(REPO_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as GithubRepo[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCachedFirstPage(repos: GithubRepo[]) {
+  try {
+    localStorage.setItem(REPO_CACHE_KEY, JSON.stringify(repos.slice(0, REPO_BATCH_SIZE)));
+  } catch {
+    // no-op
+  }
+}
 
 export default function NewProjectPage() {
   const navigate = useNavigate();
@@ -19,22 +39,31 @@ export default function NewProjectPage() {
   const queryClient = useQueryClient();
   const listContainerRef = useRef<HTMLDivElement | null>(null);
   const preloadTriggerRef = useRef<HTMLDivElement | null>(null);
+  const cachedFirstPage = useMemo(() => readCachedFirstPage(), []);
 
   const {
     data,
     isLoading,
+    isError,
+    error,
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
+    refetch,
   } = useInfiniteQuery({
     queryKey: [...queryKeys.githubRepos, "infinite", REPO_BATCH_SIZE],
     initialPageParam: 1,
-    queryFn: ({ pageParam }) =>
+    queryFn: ({ pageParam, signal }) =>
       api.get<GithubRepo[]>(
-        `/auth/github/repos?page=${pageParam}&per_page=${REPO_BATCH_SIZE}`
+        `/auth/github/repos?page=${pageParam}&per_page=${REPO_BATCH_SIZE}`,
+        { signal }
       ),
     getNextPageParam: (lastPage, allPages) =>
       lastPage.length === REPO_BATCH_SIZE ? allPages.length + 1 : undefined,
+    initialData:
+      cachedFirstPage.length > 0
+        ? { pageParams: [1], pages: [cachedFirstPage] }
+        : undefined,
     staleTime: 5 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
   });
@@ -50,6 +79,12 @@ export default function NewProjectPage() {
     }
     return unique;
   }, [data]);
+
+  useEffect(() => {
+    if (repos.length > 0) {
+      writeCachedFirstPage(repos);
+    }
+  }, [repos]);
 
   const filtered = useMemo(
     () => repos.filter((r) =>
@@ -121,6 +156,16 @@ export default function NewProjectPage() {
           <div className="glass rounded-xl p-10 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">Loading repositories...</p>
+          </div>
+        ) : isError ? (
+          <div className="glass rounded-xl p-10 text-center">
+            <Rocket className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground mb-3">
+              {(error as Error)?.message || "Failed to load repositories."}
+            </p>
+            <Button onClick={() => refetch()} className="bg-foreground text-background hover:bg-foreground/90">
+              Retry
+            </Button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="glass rounded-xl p-10 text-center">

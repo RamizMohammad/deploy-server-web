@@ -28,12 +28,12 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 }
 
 export const api = {
-  get: <T>(endpoint: string) => request<T>(endpoint),
+  get: <T>(endpoint: string, options?: RequestInit) => request<T>(endpoint, options),
   post: <T>(endpoint: string, body?: unknown) =>
     request<T>(endpoint, { method: "POST", body: body ? JSON.stringify(body) : undefined }),
   put: <T>(endpoint: string, body?: unknown) =>
     request<T>(endpoint, { method: "PUT", body: body ? JSON.stringify(body) : undefined }),
-  delete: <T>(endpoint: string) => request<T>(endpoint, { method: "DELETE" }),
+  delete: <T>(endpoint: string, options?: RequestInit) => request<T>(endpoint, { method: "DELETE", ...options }),
 };
 
 export function getToken(): string | null {
