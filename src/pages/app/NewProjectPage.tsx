@@ -17,8 +17,12 @@ function readCachedFirstPage(): GithubRepo[] {
   try {
     const raw = localStorage.getItem(REPO_CACHE_KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw) as GithubRepo[];
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = JSON.parse(raw) as
+      | GithubRepo[]
+      | { repos?: GithubRepo[]; updatedAt?: number };
+    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed?.repos)) return parsed.repos;
+    return [];
   } catch {
     return [];
   }
@@ -26,7 +30,13 @@ function readCachedFirstPage(): GithubRepo[] {
 
 function writeCachedFirstPage(repos: GithubRepo[]) {
   try {
-    localStorage.setItem(REPO_CACHE_KEY, JSON.stringify(repos.slice(0, REPO_BATCH_SIZE)));
+    localStorage.setItem(
+      REPO_CACHE_KEY,
+      JSON.stringify({
+        repos: repos.slice(0, REPO_BATCH_SIZE),
+        updatedAt: Date.now(),
+      })
+    );
   } catch {
     // no-op
   }

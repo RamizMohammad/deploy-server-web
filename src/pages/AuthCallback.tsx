@@ -1,8 +1,10 @@
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { setToken } from "@/lib/api";
-import { queryClient } from "@/lib/query";
+import { api, setToken, type GithubRepo } from "@/lib/api";
+import { queryClient, queryKeys } from "@/lib/query";
 import { Loader2 } from "lucide-react";
+
+const REPO_BATCH_SIZE = 10;
 
 const AuthCallback = () => {
   const [searchParams] = useSearchParams();
@@ -13,6 +15,16 @@ const AuthCallback = () => {
     if (token) {
       queryClient.clear();
       setToken(token);
+      queryClient.prefetchInfiniteQuery({
+        queryKey: [...queryKeys.githubRepos, "infinite", REPO_BATCH_SIZE],
+        initialPageParam: 1,
+        queryFn: ({ pageParam }) =>
+          api.get<GithubRepo[]>(`/auth/github/repos?page=${pageParam}&per_page=${REPO_BATCH_SIZE}`),
+        getNextPageParam: (lastPage, allPages) =>
+          lastPage.length === REPO_BATCH_SIZE ? allPages.length + 1 : undefined,
+        staleTime: 5 * 60 * 1000,
+        gcTime: 15 * 60 * 1000,
+      });
       navigate("/app", { replace: true });
     } else {
       navigate("/", { replace: true });
