@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -6,64 +6,50 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Search, Lock, Globe, GitBranch, Loader2, Rocket } from "lucide-react";
 import { api, type GithubRepo } from "@/lib/api";
 import { toast } from "sonner";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query";
 
 const REPO_BATCH_SIZE = 10;
-const REPO_PRELOAD_OFFSET = 3; // Trigger near item 7/8 of a 10-item batch
+const REPO_PRELOAD_OFFSET = 3; // Trigger around item 7/8 in a 10-item batch
 
 export default function NewProjectPage() {
   const navigate = useNavigate();
-  const [repos, setRepos] = useState<GithubRepo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [deployingRepoId, setDeployingRepoId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-
+  const queryClient = useQueryClient();
   const listContainerRef = useRef<HTMLDivElement | null>(null);
   const preloadTriggerRef = useRef<HTMLDivElement | null>(null);
-  const isFetchingNextPageRef = useRef(false);
 
-  const loadReposPage = useCallback(async (targetPage: number, append: boolean) => {
-    if (append && isFetchingNextPageRef.current) {
-      return;
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
+    queryKey: [...queryKeys.githubRepos, "infinite", REPO_BATCH_SIZE],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) =>
+      api.get<GithubRepo[]>(
+        `/auth/github/repos?page=${pageParam}&per_page=${REPO_BATCH_SIZE}`
+      ),
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length === REPO_BATCH_SIZE ? allPages.length + 1 : undefined,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+  });
+
+  const repos = useMemo(() => {
+    const flattened = data?.pages.flat() ?? [];
+    const seen = new Set<number>();
+    const unique: GithubRepo[] = [];
+    for (const repo of flattened) {
+      if (seen.has(repo.id)) continue;
+      seen.add(repo.id);
+      unique.push(repo);
     }
-
-    if (append) {
-      isFetchingNextPageRef.current = true;
-    }
-
-    if (append) {
-      setLoadingMore(true);
-    } else {
-      setLoading(true);
-    }
-
-    try {
-      const data = await api.get<GithubRepo[]>(`/auth/github/repos?page=${targetPage}&per_page=${REPO_BATCH_SIZE}`);
-      setRepos((prev) => {
-        if (!append) {
-          return data;
-        }
-        const existingIds = new Set(prev.map((repo) => repo.id));
-        const nextRepos = data.filter((repo) => !existingIds.has(repo.id));
-        return [...prev, ...nextRepos];
-      });
-      setPage(targetPage);
-      setHasMore(data.length === REPO_BATCH_SIZE);
-    } catch {
-      if (!append) setRepos([]);
-      setHasMore(false);
-    } finally {
-      isFetchingNextPageRef.current = false;
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadReposPage(1, false);
-  }, [loadReposPage]);
+    return unique;
+  }, [data]);
 
   const filtered = useMemo(
     () => repos.filter((r) =>
@@ -73,16 +59,18 @@ export default function NewProjectPage() {
     [repos, search]
   );
 
+  const preloadIndex = Math.max(filtered.length - REPO_PRELOAD_OFFSET, 0);
+
   useEffect(() => {
     const node = preloadTriggerRef.current;
     const root = listContainerRef.current;
-    if (!node || !root || !hasMore || loading || loadingMore) return;
+    if (!node || !root || !hasNextPage || isFetchingNextPage) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         const first = entries[0];
         if (!first?.isIntersecting) return;
-        void loadReposPage(page + 1, true);
+        void fetchNextPage();
       },
       {
         root,
@@ -92,7 +80,7 @@ export default function NewProjectPage() {
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, [filtered.length, hasMore, loading, loadingMore, loadReposPage, page]);
+  }, [fetchNextPage, filtered.length, hasNextPage, isFetchingNextPage]);
 
   const deployRepo = async (repo: GithubRepo) => {
     try {
@@ -101,6 +89,10 @@ export default function NewProjectPage() {
         repo_name: repo.name,
         branch: repo.default_branch || "main",
       });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.projects }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.deployments }),
+      ]);
       toast.success(`Deployment started for ${repo.name}`);
       navigate("/app/projects");
     } catch {
@@ -109,8 +101,6 @@ export default function NewProjectPage() {
       setDeployingRepoId(null);
     }
   };
-
-  const preloadIndex = Math.max(filtered.length - REPO_PRELOAD_OFFSET, 0);
 
   return (
     <div className="p-6 md:p-8 max-w-4xl mx-auto">
@@ -127,7 +117,7 @@ export default function NewProjectPage() {
           <Input placeholder="Search repositories..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-secondary/50 border-border/50" />
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <div className="glass rounded-xl p-10 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">Loading repositories...</p>
@@ -174,15 +164,17 @@ export default function NewProjectPage() {
               </div>
             ))}
 
-            {loadingMore && (
+            {isFetchingNextPage && (
               <div className="py-3 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 Loading more repositories...
               </div>
             )}
 
-            {!hasMore && repos.length > 0 && (
-              <p className="py-2 text-center text-xs text-muted-foreground">You have reached the end of your repositories.</p>
+            {!hasNextPage && repos.length > 0 && (
+              <p className="py-2 text-center text-xs text-muted-foreground">
+                You have reached the end of your repositories.
+              </p>
             )}
           </div>
         )}

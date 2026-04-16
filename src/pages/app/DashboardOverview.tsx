@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, type Deployment, type Project } from "@/lib/api";
 import { motion } from "framer-motion";
 import { FolderGit2, ArrowRight, Activity, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { deploymentsQueryOptions, projectsQueryOptions } from "@/lib/query";
 
 const StatusDot = ({ status }: { status: string }) => {
   const colors: Record<string, string> = {
@@ -18,32 +19,9 @@ const StatusDot = ({ status }: { status: string }) => {
 };
 
 export default function DashboardOverview() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [deployments, setDeployments] = useState<Deployment[]>([]);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      try {
-        const [projectsData, deploymentsData] = await Promise.all([
-          api.get<Project[]>("/projects"),
-          api.get<Deployment[]>("/deployments"),
-        ]);
-        if (!mounted) return;
-        setProjects(projectsData);
-        setDeployments(deploymentsData);
-      } catch {
-        if (!mounted) return;
-        setProjects([]);
-        setDeployments([]);
-      }
-    };
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const { data: projects = [] } = useQuery(projectsQueryOptions);
+  const { data: deployments = [] } = useQuery(deploymentsQueryOptions);
 
   const projectStatusMap = useMemo(() => {
     const map = new Map<string, string>();

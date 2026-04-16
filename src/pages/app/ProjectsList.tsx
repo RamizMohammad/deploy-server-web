@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api, type Deployment, type Project } from "@/lib/api";
 import { motion } from "framer-motion";
 import { FolderGit2, Search, Plus, Clock, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useQuery } from "@tanstack/react-query";
+import { deploymentsQueryOptions, projectsQueryOptions } from "@/lib/query";
 
 const StatusBadge = ({ status }: { status: string }) => {
   const map: Record<string, { bg: string; text: string; label: string }> = {
@@ -19,33 +20,10 @@ const StatusBadge = ({ status }: { status: string }) => {
 };
 
 export default function ProjectsList() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
-
-  useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      try {
-        const [projectsData, deploymentsData] = await Promise.all([
-          api.get<Project[]>("/projects"),
-          api.get<Deployment[]>("/deployments"),
-        ]);
-        if (!mounted) return;
-        setProjects(projectsData);
-        setDeployments(deploymentsData);
-      } catch {
-        if (!mounted) return;
-        setProjects([]);
-        setDeployments([]);
-      }
-    };
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const { data: projects = [] } = useQuery(projectsQueryOptions);
+  const { data: deployments = [] } = useQuery(deploymentsQueryOptions);
 
   const latestStatusByProject = useMemo(() => {
     const map = new Map<string, string>();
