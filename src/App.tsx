@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { type InfiniteData } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -37,7 +38,28 @@ function persistFirstRepoBatch(repos: GithubRepo[]) {
   }
 }
 
-const EntryRoute = () => (getToken() ? <Navigate to="/app" replace /> : <LandingPage />);
+const AuthCheckingScreen = () => (
+  <div className="flex min-h-screen items-center justify-center bg-background">
+    <div className="flex flex-col items-center gap-4">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <p className="text-sm text-muted-foreground">Checking your session...</p>
+    </div>
+  </div>
+);
+
+const EntryRoute = () => {
+  const [authState, setAuthState] = useState<"checking" | "signed-in" | "signed-out">("checking");
+
+  useEffect(() => {
+    setAuthState(getToken() ? "signed-in" : "signed-out");
+  }, []);
+
+  if (authState === "checking") {
+    return <AuthCheckingScreen />;
+  }
+
+  return authState === "signed-in" ? <Navigate to="/app" replace /> : <LandingPage />;
+};
 
 const App = () => {
   useEffect(() => {
