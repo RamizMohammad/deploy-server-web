@@ -36,18 +36,18 @@ jobs:
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID_1 }}" \
             -d parse_mode="Markdown" \
-            -d text="✅ *deploy-server-web synced*
+            -d text="✅ *deploy-server-web synced*"
 
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID_2 }}" \
             -d parse_mode="Markdown" \
             -d text="✅ *deploy-server-web synced*
-            
-          *Repo:* deploy-server → deploy-server-web
-          *Branch:* web → main
-          *Commit:* \`${{ github.sha }}\`
-          *By:* ${{ github.actor }}
-          *Message:* ${{ github.event.head_commit.message }}"
+
+*Repo:* deploy-server → deploy-server-web
+*Branch:* web → QA
+*Commit:* \`${{ github.sha }}\`
+*By:* ${{ github.actor }}
+*Message:* ${{ github.event.head_commit.message }}"
 
       - name: Notify Telegram (failure)
         if: failure()
@@ -55,17 +55,17 @@ jobs:
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID_1 }}" \
             -d parse_mode="Markdown" \
-            -d text="❌ *deploy-server-web sync FAILED*
+            -d text="❌ *deploy-server-web sync FAILED*"
 
           curl -s -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
             -d chat_id="${{ secrets.TELEGRAM_CHAT_ID_2 }}" \
             -d parse_mode="Markdown" \
             -d text="❌ *deploy-server-web sync FAILED*
-          
-          *Repo:* deploy-server → deploy-server-web
-          *Branch:* web → main
-          *Commit:* \`${{ github.sha }}\`
-          *By:* ${{ github.actor }}
-          *Message:* ${{ github.event.head_commit.message }}
-          
-          [View Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+*Repo:* deploy-server → deploy-server-web
+*Branch:* web → QA
+*Commit:* \`${{ github.sha }}\`
+*By:* ${{ github.actor }}
+*Message:* ${{ github.event.head_commit.message }}
+
+[View Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"
