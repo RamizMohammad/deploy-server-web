@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { type InfiniteData } from "@tanstack/react-query";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,36 +22,83 @@ import NotFound from "./pages/NotFound";
 
 const REPO_BATCH_SIZE = 10;
 const REPO_CACHE_KEY = "launchly:github_repos:first_page:v1";
-const REPO_CACHE_MAX_AGE_MS = 5 * 60 * 1000;
 
-function hasFreshRepoCache(): boolean {
+function persistFirstRepoBatch(repos: GithubRepo[]) {
   try {
-    const raw = localStorage.getItem(REPO_CACHE_KEY);
-    if (!raw) return false;
-    const parsed = JSON.parse(raw) as { repos?: GithubRepo[]; updatedAt?: number } | GithubRepo[];
-    if (Array.isArray(parsed)) return parsed.length > 0;
-    if (!Array.isArray(parsed?.repos) || parsed.repos.length === 0) return false;
-    if (typeof parsed.updatedAt !== "number") return false;
-    return Date.now() - parsed.updatedAt < REPO_CACHE_MAX_AGE_MS;
+    localStorage.setItem(
+      REPO_CACHE_KEY,
+      JSON.stringify({
+        repos: repos.slice(0, REPO_BATCH_SIZE),
+        updatedAt: Date.now(),
+      })
+    );
   } catch {
-    return false;
+    // no-op
   }
 }
 
+const EntryRoute = () => (getToken() ? <Navigate to="/app" replace /> : <LandingPage />);
+
 const App = () => {
   useEffect(() => {
-    if (!getToken()) return;
-    if (hasFreshRepoCache()) return;
-    queryClient.prefetchInfiniteQuery({
-      queryKey: [...queryKeys.githubRepos, "infinite", REPO_BATCH_SIZE],
-      initialPageParam: 1,
-      queryFn: ({ pageParam }) =>
-        api.get<GithubRepo[]>(`/auth/github/repos?page=${pageParam}&per_page=${REPO_BATCH_SIZE}`),
-      getNextPageParam: (lastPage, allPages) =>
-        lastPage.length === REPO_BATCH_SIZE ? allPages.length + 1 : undefined,
-      staleTime: 5 * 60 * 1000,
-      gcTime: 15 * 60 * 1000,
-    });
+    if (!getToken()) {
+      return;
+    }
+
+    const reposKey = [...queryKeys.githubRepos, "infinite", REPO_BATCH_SIZE] as const;
+    let cancelled = false;
+
+    const warmAllRepoPages = async () => {
+      let page = 1;
+      const cached = queryClient.getQueryData<InfiniteData<GithubRepo[]>>(reposKey);
+      const pages = cached?.pages ? [...cached.pages] : [];
+
+      if (pages.length > 0) {
+        page = pages.length + 1;
+      }
+
+      while (!cancelled) {
+        let batch: GithubRepo[] = [];
+        try {
+          batch = await api.get<GithubRepo[]>(
+            `/auth/github/repos?page=${page}&per_page=${REPO_BATCH_SIZE}`
+          );
+        } catch {
+          break;
+        }
+        if (cancelled) return;
+
+        if (page === 1) {
+          persistFirstRepoBatch(batch);
+        }
+
+        if (batch.length === 0) {
+          break;
+        }
+
+        if (pages.length < page) {
+          pages.push(batch);
+        } else {
+          pages[page - 1] = batch;
+        }
+
+        queryClient.setQueryData(reposKey, {
+          pageParams: pages.map((_, index) => index + 1),
+          pages,
+        });
+
+        if (batch.length < REPO_BATCH_SIZE) {
+          break;
+        }
+
+        page += 1;
+      }
+    };
+
+    void warmAllRepoPages();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -59,7 +107,7 @@ const App = () => {
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<EntryRoute />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
