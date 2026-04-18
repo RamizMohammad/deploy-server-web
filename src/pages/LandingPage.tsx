@@ -27,7 +27,7 @@ const FAKE_LOGS = [
   { text: "Deploying to edge network...", type: "info" as const },
   { text: "Propagating to 34 edge locations...", type: "info" as const },
   { text: "✓ Deployment successful!", type: "success" as const },
-  { text: "→ https://my-app.launchly.systems", type: "success" as const },
+  { text: "→ https://my-app.launchly.app", type: "success" as const },
 ];
 
 const FEATURES = [
@@ -164,8 +164,8 @@ export default function LandingPage() {
             <Button size="lg" className="bg-foreground text-background hover:bg-foreground/90 gap-2" onClick={() => navigate("/login")}>
               Start Deploying <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" className="gap-2 border-border/50 hover:bg-secondary/50" onClick={() => navigate("/login")}>
-              <Github className="h-4 w-4" /> Login with GitHub
+            <Button size="lg" variant="outline" className="gap-2 border-border/50 hover:bg-secondary/50">
+              <Github className="h-4 w-4" /> View on GitHub
             </Button>
           </motion.div>
 
@@ -263,7 +263,7 @@ export default function LandingPage() {
               <div className="terminal-bg p-5 space-y-2">
                 <p className="text-sm font-mono text-muted-foreground"><span className="text-primary">$</span> npx launchly init</p>
                 <p className="text-sm font-mono text-muted-foreground"><span className="text-primary">$</span> launchly deploy --prod</p>
-                <p className="text-sm font-mono text-success">✓ Deployed to https://my-app.launchly.systems</p>
+                <p className="text-sm font-mono text-success">✓ Deployed to https://my-app.launchly.app</p>
               </div>
             </motion.div>
 

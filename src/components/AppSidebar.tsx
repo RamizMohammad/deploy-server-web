@@ -35,9 +35,7 @@ export function AppSidebar({ onOpenCommandPalette }: AppSidebarProps) {
 
   const handleSignOut = () => {
     removeToken();
-    if (location.pathname !== "/login") {
-      navigate("/login");
-    }
+    window.location.href = "/login";
   };
 
   return (

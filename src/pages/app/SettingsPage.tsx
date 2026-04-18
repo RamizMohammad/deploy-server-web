@@ -1,115 +1,120 @@
-﻿import { Bell, Github, ShieldAlert, UserRound, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button";
+﻿import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { PageFrame, PageHeader, SurfaceCard } from "@/components/platform/PlatformUI";
+import { Label } from "@/components/ui/label";
+import { Github, Mail, AlertTriangle, User, Bell } from "lucide-react";
+import { useState } from "react";
+
+const Section = ({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 12 }}
+    animate={{ opacity: 1, y: 0 }}
+    className="glass rounded-xl p-6"
+  >
+    <div className="mb-5">
+      <h3 className="font-semibold text-foreground text-base">{title}</h3>
+      {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
+    </div>
+    {children}
+  </motion.div>
+);
 
 export default function SettingsPage() {
+  const [emailNotif, setEmailNotif] = useState(true);
+  const [deployNotif, setDeployNotif] = useState(true);
+  const [marketingNotif, setMarketingNotif] = useState(false);
+
   return (
-    <PageFrame className="max-w-5xl">
-      <PageHeader
-        eyebrow="Workspace"
-        title="Settings"
-        description="Manage account identity, connected providers, notifications, and high-risk workspace actions."
-      />
+    <div className="p-6 md:p-10 max-w-3xl">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <h1 className="text-3xl font-bold text-foreground tracking-tight mb-1">Settings</h1>
+        <p className="text-muted-foreground">Manage your account, integrations, and preferences.</p>
+      </motion.div>
 
-      <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-        <SurfaceCard className="h-fit p-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-              <UserRound className="h-5 w-5" />
+      <div className="space-y-5">
+        <Section title="Profile" description="Your personal information.">
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-background font-bold text-lg">
+                D
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">Developer</p>
+                <p className="text-xs text-muted-foreground">Free plan</p>
+              </div>
             </div>
-            <div>
-              <p className="font-semibold text-foreground">Developer</p>
-              <p className="text-xs text-muted-foreground">Launchly workspace</p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block flex items-center gap-1.5"><User className="h-3 w-3" /> Display Name</Label>
+                <Input defaultValue="Developer" className="bg-secondary/50 border-border/50" />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1.5 block flex items-center gap-1.5"><Mail className="h-3 w-3" /> Email</Label>
+                <Input defaultValue="dev@launchly.app" className="bg-secondary/50 border-border/50" />
+              </div>
             </div>
+            <Button className="bg-foreground text-background hover:bg-foreground/90">Save Changes</Button>
           </div>
-          <div className="mt-5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">
-            GitHub connected and deployments enabled.
-          </div>
-        </SurfaceCard>
+        </Section>
 
-        <div className="space-y-6">
-          <SurfaceCard className="p-6">
-            <SectionHeader icon={UserRound} title="Profile" description="This information is visible inside Launchly activity and deployment records." />
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <label className="space-y-2">
-                <span className="text-sm text-muted-foreground">Display Name</span>
-                <Input defaultValue="Developer" className="border-zinc-800 bg-zinc-950/70" />
-              </label>
-              <label className="space-y-2">
-                <span className="text-sm text-muted-foreground">Email</span>
-                <Input defaultValue="dev@launchly.systems" className="border-zinc-800 bg-zinc-950/70" />
-              </label>
+        <Section title="Connected Accounts" description="Git providers linked to your account.">
+          <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/30 border border-border/30">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-foreground/10 flex items-center justify-center">
+                <Github className="h-5 w-5 text-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">GitHub</p>
+                <p className="text-xs text-muted-foreground">Connected as @developer</p>
+              </div>
             </div>
-            <Button className="mt-5 bg-foreground text-background hover:bg-foreground/90">Save Changes</Button>
-          </SurfaceCard>
+            <span className="text-xs text-success flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" /> Connected
+            </span>
+          </div>
+        </Section>
 
-          <SurfaceCard className="p-6">
-            <SectionHeader icon={Github} title="Connected Accounts" description="Launchly uses GitHub to discover repositories and start deployments." />
-            <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <Section title="Notifications" description="Choose what updates you receive.">
+          <div className="space-y-4">
+            {[
+              { id: "email", label: "Email notifications", desc: "Receive deployment status emails", checked: emailNotif, set: setEmailNotif, icon: Mail },
+              { id: "deploy", label: "Deployment alerts", desc: "Get notified on failed builds", checked: deployNotif, set: setDeployNotif, icon: Bell },
+              { id: "marketing", label: "Product updates", desc: "Occasional news and tips", checked: marketingNotif, set: setMarketingNotif, icon: Bell },
+            ].map((row) => (
+              <div key={row.id} className="flex items-center justify-between py-2">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground text-background text-xs font-bold">GH</div>
+                  <row.icon className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium text-foreground">GitHub</p>
-                    <p className="text-xs text-muted-foreground">Connected as @developer</p>
+                    <Label htmlFor={row.id} className="text-sm font-medium text-foreground cursor-pointer">{row.label}</Label>
+                    <p className="text-xs text-muted-foreground">{row.desc}</p>
                   </div>
                 </div>
-                <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">Connected</span>
+                <Switch id={row.id} checked={row.checked} onCheckedChange={row.set} />
               </div>
+            ))}
+          </div>
+        </Section>
+
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl p-6 border border-destructive/30 bg-destructive/5"
+        >
+          <div className="flex items-start gap-3 mb-4">
+            <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+              <AlertTriangle className="h-4 w-4 text-destructive" />
             </div>
-          </SurfaceCard>
-
-          <SurfaceCard className="p-6">
-            <SectionHeader icon={Bell} title="Notifications" description="Choose which deployment events should surface in your workspace." />
-            <div className="mt-6 space-y-4">
-              <ToggleRow title="Deployment failures" description="Notify me when a build fails or exits unexpectedly." defaultChecked />
-              <ToggleRow title="Successful releases" description="Show a confirmation after production deploys go live." defaultChecked />
-              <ToggleRow title="Background repo sync" description="Surface GitHub sync status while repositories warm in batches." defaultChecked />
+            <div>
+              <h3 className="font-semibold text-destructive text-base">Danger Zone</h3>
+              <p className="text-sm text-muted-foreground mt-1">Permanently delete your account and all associated projects. This cannot be undone.</p>
             </div>
-          </SurfaceCard>
-
-          <SurfaceCard className="border-red-500/20 p-6">
-            <SectionHeader icon={ShieldAlert} title="Danger Zone" description="High-risk actions that can affect every project in this workspace." destructive />
-            <div className="mt-6 rounded-xl border border-red-500/20 bg-red-500/5 p-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Delete workspace</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Permanently remove account data, projects, and deployment history.</p>
-                </div>
-                <Button variant="outline" className="border-red-500/40 text-red-300 hover:bg-red-500/10 hover:text-red-200">Delete Account</Button>
-              </div>
-            </div>
-          </SurfaceCard>
-        </div>
+          </div>
+          <Button variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive">
+            Delete Account
+          </Button>
+        </motion.div>
       </div>
-    </PageFrame>
-  );
-}
-
-function SectionHeader({ icon: Icon, title, description, destructive = false }: { icon: typeof Zap; title: string; description: string; destructive?: boolean }) {
-  return (
-    <div className="flex items-start gap-3">
-      <div className={destructive ? "rounded-lg border border-red-500/20 bg-red-500/10 p-2 text-red-300" : "rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary"}>
-        <Icon className="h-4 w-4" />
-      </div>
-      <div>
-        <h2 className={destructive ? "font-semibold text-red-200" : "font-semibold text-foreground"}>{title}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-      </div>
-    </div>
-  );
-}
-
-function ToggleRow({ title, description, defaultChecked }: { title: string; description: string; defaultChecked?: boolean }) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-xl border border-zinc-800 bg-zinc-950/60 p-4">
-      <div>
-        <p className="text-sm font-medium text-foreground">{title}</p>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-      </div>
-      <Switch defaultChecked={defaultChecked} />
     </div>
   );
 }

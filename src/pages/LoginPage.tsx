@@ -1,99 +1,66 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Rocket, Github, Mail } from "lucide-react";
-import { loginWithGithub, isAuthenticated } from "@/lib/api";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Github, Loader2, Rocket } from "lucide-react";
+import { getToken, loginWithGithub } from "@/lib/api";
 
-export default function LoginPage() {
+const LoginPage = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
+  // If already signed in, send straight to the dashboard.
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (getToken()) {
       navigate("/app", { replace: true });
     }
   }, [navigate]);
 
-  const handleGithubLogin = () => {
-    setLoading(true);
+  const handleGithub = () => {
+    setRedirecting(true);
     loginWithGithub();
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left - Branding */}
-      <div className="hidden lg:flex flex-1 relative overflow-hidden items-center justify-center bg-card/30">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5" />
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-primary/8 rounded-full blur-[150px]" />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8 }}
-          className="relative z-10 text-center px-12"
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#070A0F] px-4 text-foreground">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(14,165,233,0.2),transparent_35%),radial-gradient(circle_at_82%_80%,rgba(139,92,246,0.14),transparent_30%)]" />
+      <div className="pointer-events-none fixed inset-0 opacity-[0.06] [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] [background-size:48px_48px]" />
+
+      <div className="relative w-full max-w-md rounded-2xl border border-zinc-800/80 bg-zinc-950/70 p-8 shadow-[0_30px_120px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+        <Link to="/" className="mb-8 flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
+            <Rocket className="h-4 w-4" />
+          </div>
+          <span className="text-base font-semibold tracking-tight">Launchly</span>
+        </Link>
+
+        <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Sign in to continue to your dashboard. We'll keep you logged in on this device.
+        </p>
+
+        <button
+          onClick={handleGithub}
+          disabled={redirecting}
+          className="mt-8 flex w-full items-center justify-center gap-2 rounded-md border border-zinc-800/80 bg-zinc-950/60 px-4 py-3 text-sm font-medium transition hover:border-primary/40 hover:bg-zinc-900 disabled:opacity-60"
         >
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <Rocket className="h-10 w-10 text-primary" />
-            <span className="text-3xl font-bold text-foreground">Launchly</span>
-          </div>
-          <h2 className="text-2xl font-semibold text-foreground mb-3">Ship faster than ever</h2>
-          <p className="text-muted-foreground max-w-sm mx-auto">Push code, deploy globally, iterate instantly. The modern deployment platform.</p>
+          {redirecting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Redirecting to GitHub…
+            </>
+          ) : (
+            <>
+              <Github className="h-4 w-4" />
+              Continue with GitHub
+            </>
+          )}
+        </button>
 
-          {/* Animated deployment */}
-          <motion.div className="mt-12 glass rounded-xl p-4 max-w-xs mx-auto text-left" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-              <span className="text-xs text-success font-mono">Production</span>
-            </div>
-            <p className="text-xs text-muted-foreground font-mono">my-app.launchly.systems</p>
-            <p className="text-xs text-muted-foreground mt-1">Deployed 2m ago · 24s build</p>
-          </motion.div>
-        </motion.div>
-      </div>
-
-      {/* Right - Auth */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-sm"
-        >
-          <div className="lg:hidden flex items-center gap-2 mb-8">
-            <Rocket className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold text-foreground">Launchly</span>
-          </div>
-
-          <h1 className="text-2xl font-bold text-foreground mb-2">Welcome back</h1>
-          <p className="text-muted-foreground mb-8">Sign in to your account to continue</p>
-
-          <Button onClick={handleGithubLogin} disabled={loading} className="w-full bg-foreground text-background hover:bg-foreground/90 gap-2 mb-4 h-11">
-            <Github className="h-4 w-4" />
-            {loading ? "Redirecting to GitHub..." : "Continue with GitHub"}
-          </Button>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border/30" /></div>
-            <div className="relative flex justify-center"><span className="px-3 bg-background text-xs text-muted-foreground">or</span></div>
-          </div>
-
-          <div className="space-y-3">
-            <Input placeholder="Email" className="bg-secondary/50 border-border/50 h-11" />
-            <Input type="password" placeholder="Password" className="bg-secondary/50 border-border/50 h-11" />
-            <Button disabled variant="outline" className="w-full h-11 border-border/50 hover:bg-secondary/50 gap-2 opacity-50 cursor-not-allowed">
-              <Mail className="h-4 w-4" />
-              Sign in with Email (coming soon)
-            </Button>
-          </div>
-
-          <p className="text-xs text-muted-foreground text-center mt-8">
-            Don't have an account?{" "}
-            <button onClick={handleGithubLogin} className="text-primary hover:underline">Sign up with GitHub</button>
-          </p>
-        </motion.div>
+        <p className="mt-8 text-center text-xs text-muted-foreground">
+          By continuing, you agree to our Terms and Privacy Policy.
+        </p>
       </div>
     </div>
   );
-}
+};
+
+export default LoginPage;

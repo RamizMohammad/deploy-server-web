@@ -12,6 +12,7 @@ import LoginPage from "./pages/LoginPage";
 import AuthCallback from "./pages/AuthCallback";
 import { AppLayout } from "./components/AppLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { PublicRoute } from "./components/PublicRoute";
 import DashboardOverview from "./pages/app/DashboardOverview";
 import ProjectsList from "./pages/app/ProjectsList";
 import ProjectDetailPage from "./pages/app/ProjectDetailPage";
@@ -189,7 +190,14 @@ const App = () => {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<EntryRoute />} />
-          <Route path="/login" element={<LoginPage />} />
+          <Route
+  path="/login"
+  element={
+    <PublicRoute>
+      <LoginPage />
+    </PublicRoute>
+  }
+/>
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route index element={<DashboardOverview />} />
