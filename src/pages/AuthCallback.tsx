@@ -1,23 +1,28 @@
 import { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { setToken } from "@/lib/api";
 import { queryClient } from "@/lib/query";
 import { Loader2 } from "lucide-react";
 
 const AuthCallback = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
 
   useEffect(() => {
     const token = searchParams.get("token");
+
     if (token) {
+      // ✅ clear any cached data
       queryClient.clear();
+
+      // ✅ store token
       setToken(token);
-      navigate("/app", { replace: true });
+
+      // 🔥 CRITICAL FIX: replace entire history
+      window.location.replace("/app");
     } else {
-      navigate("/", { replace: true });
+      window.location.replace("/");
     }
-  }, [searchParams, navigate]);
+  }, [searchParams]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">

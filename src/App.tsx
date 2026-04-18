@@ -197,14 +197,7 @@ const App = () => {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<EntryRoute />} />
-          <Route
-  path="/login"
-  element={
-    <PublicRoute>
-      <LoginPage />
-    </PublicRoute>
-  }
-/>
+          <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route index element={<DashboardOverview />} />
