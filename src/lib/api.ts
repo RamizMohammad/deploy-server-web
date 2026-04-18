@@ -1,7 +1,29 @@
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "https://server.api.launchly.systems").replace(/\/$/, "");
+const AUTH_TOKEN_KEY = "deployx_token";
+const LEGACY_AUTH_TOKEN_KEYS = ["token"];
+
+function readStoredToken(): string | null {
+  return localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+function readLegacyToken(): string | null {
+  for (const key of LEGACY_AUTH_TOKEN_KEYS) {
+    const token = localStorage.getItem(key);
+    if (token) {
+      return token;
+    }
+  }
+  return null;
+}
+
+function clearLegacyTokens() {
+  for (const key of LEGACY_AUTH_TOKEN_KEYS) {
+    localStorage.removeItem(key);
+  }
+}
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem("deployx_token");
+  const token = getToken();
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...options.headers,
@@ -13,7 +35,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
   if (!res.ok) {
     if (res.status === 401) {
-      localStorage.removeItem("deployx_token");
+      removeToken();
       window.location.href = "/";
     }
     const errorBody = await res.text();
@@ -37,15 +59,29 @@ export const api = {
 };
 
 export function getToken(): string | null {
-  return localStorage.getItem("deployx_token");
+  const token = readStoredToken();
+  if (token) {
+    return token;
+  }
+
+  const legacyToken = readLegacyToken();
+  if (!legacyToken) {
+    return null;
+  }
+
+  localStorage.setItem(AUTH_TOKEN_KEY, legacyToken);
+  clearLegacyTokens();
+  return legacyToken;
 }
 
 export function setToken(token: string) {
-  localStorage.setItem("deployx_token", token);
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
+  clearLegacyTokens();
 }
 
 export function removeToken() {
-  localStorage.removeItem("deployx_token");
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  clearLegacyTokens();
 }
 
 export function isAuthenticated(): boolean {
@@ -53,7 +89,7 @@ export function isAuthenticated(): boolean {
 }
 
 export function loginWithGithub() {
-  window.location.href = `${API_BASE}/auth/github/connect`;
+  window.location.replace(`${API_BASE}/auth/github/connect`);
 }
 
 export interface GithubRepo {

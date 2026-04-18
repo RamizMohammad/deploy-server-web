@@ -95,12 +95,18 @@ const AuthCheckingScreen = () => (
 
 const EntryRoute = () => {
   const [checking, setChecking] = useState(true);
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(() => getToken());
 
   useEffect(() => {
-    const t = getToken();
-    setToken(t);
-    setTimeout(() => setChecking(false), 300); // smooth UX
+    setToken(getToken());
+    const timeoutId = window.setTimeout(() => setChecking(false), 300);
+    const syncToken = () => setToken(getToken());
+
+    window.addEventListener("storage", syncToken);
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.removeEventListener("storage", syncToken);
+    };
   }, []);
 
   if (checking) {

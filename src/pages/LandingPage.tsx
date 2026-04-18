@@ -111,6 +111,10 @@ export default function LandingPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const goToLogin = () => {
+    navigate("/login", { replace: true });
+  };
+
   return (
     <div className="min-h-screen bg-background overflow-hidden">
       {/* Noise overlay */}
@@ -124,10 +128,10 @@ export default function LandingPage() {
             <span className="font-bold text-foreground tracking-tight">Launchly</span>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={() => navigate("/login")}>
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={goToLogin}>
               Sign In
             </Button>
-            <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90" onClick={() => navigate("/login")}>
+            <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90" onClick={goToLogin}>
               Start Deploying
             </Button>
           </div>
@@ -161,7 +165,7 @@ export default function LandingPage() {
           </motion.p>
 
           <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible" className="flex items-center justify-center gap-4 mb-16">
-            <Button size="lg" className="bg-foreground text-background hover:bg-foreground/90 gap-2" onClick={() => navigate("/login")}>
+            <Button size="lg" className="bg-foreground text-background hover:bg-foreground/90 gap-2" onClick={goToLogin}>
               Start Deploying <ArrowRight className="h-4 w-4" />
             </Button>
             <Button size="lg" variant="outline" className="gap-2 border-border/50 hover:bg-secondary/50">
@@ -303,7 +307,7 @@ export default function LandingPage() {
         >
           <h2 className="text-4xl font-bold text-foreground mb-4">Ready to launch?</h2>
           <p className="text-muted-foreground mb-8">Join thousands of developers shipping faster with Launchly.</p>
-          <Button size="lg" className="bg-foreground text-background hover:bg-foreground/90 gap-2" onClick={() => navigate("/login")}>
+          <Button size="lg" className="bg-foreground text-background hover:bg-foreground/90 gap-2" onClick={goToLogin}>
             Start Deploying <ArrowRight className="h-4 w-4" />
           </Button>
         </motion.div>
