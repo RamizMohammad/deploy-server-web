@@ -94,17 +94,24 @@ const AuthCheckingScreen = () => (
 );
 
 const EntryRoute = () => {
-  const [authState, setAuthState] = useState<"checking" | "signed-in" | "signed-out">("checking");
+  const [checking, setChecking] = useState(true);
+  const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    setAuthState(getToken() ? "signed-in" : "signed-out");
+    const t = getToken();
+    setToken(t);
+    setTimeout(() => setChecking(false), 300); // smooth UX
   }, []);
 
-  if (authState === "checking") {
+  if (checking) {
     return <AuthCheckingScreen />;
   }
 
-  return authState === "signed-in" ? <Navigate to="/app" replace /> : <LandingPage />;
+  return token ? (
+    <Navigate to="/app" replace />
+  ) : (
+    <LandingPage />
+  );
 };
 
 const App = () => {
