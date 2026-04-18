@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 
-export function ProtectedRoute({ children }: { children: React.ReactNode }) {
+export const PublicRoute = ({ children }: any) => {
   const { isAuthenticated, isChecking } = useAuth();
 
   if (isChecking) {
@@ -12,8 +12,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+  if (isAuthenticated) {
+    return <Navigate to="/app" replace />;
   }
-  return <>{children}</>;
-}
+
+  return children;
+};

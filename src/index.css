@@ -134,3 +134,8 @@
   0% { transform: translateY(0); }
   100% { transform: translateY(30px); }
 }
+
+@keyframes shimmer {
+  0% { transform: translateX(-120%); }
+  100% { transform: translateX(240%); }
+}
