@@ -28,7 +28,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git remote add target git@github.com:RamizMohammad/deploy-server-web.git
-          git push target web:QA --force
+          git push target web:main --force
 
       - name: Notify Telegram (success)
         if: success()
