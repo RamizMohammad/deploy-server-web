@@ -1,25 +1,26 @@
-import { useEffect, useState } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
-import { type InfiniteData } from "@tanstack/react-query";
-import { Rocket } from "lucide-react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { api, getToken, type GithubRepo } from "@/lib/api";
+import { useAuth } from "@/hooks/useAuth";
+import { api, type GithubRepo } from "@/lib/api";
 import { queryClient, queryKeys } from "@/lib/query";
-import LandingPage from "./pages/LandingPage";
-import LoginPage from "./pages/LoginPage";
-import AuthCallback from "./pages/AuthCallback";
+import { type InfiniteData } from "@tanstack/react-query";
+import { Rocket } from "lucide-react";
+import { useEffect } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "./components/AppLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PublicRoute } from "./components/PublicRoute";
 import DashboardOverview from "./pages/app/DashboardOverview";
-import ProjectsList from "./pages/app/ProjectsList";
-import ProjectDetailPage from "./pages/app/ProjectDetailPage";
-import NewProjectPage from "./pages/app/NewProjectPage";
 import DomainsPage from "./pages/app/DomainsPage";
 import LogsPage from "./pages/app/LogsPage";
+import NewProjectPage from "./pages/app/NewProjectPage";
+import ProjectDetailPage from "./pages/app/ProjectDetailPage";
+import ProjectsList from "./pages/app/ProjectsList";
 import SettingsPage from "./pages/app/SettingsPage";
+import AuthCallback from "./pages/AuthCallback";
+import LandingPage from "./pages/LandingPage";
+import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 
 const REPO_BATCH_SIZE = 10;
@@ -94,26 +95,13 @@ const AuthCheckingScreen = () => (
 );
 
 const EntryRoute = () => {
-  const [checking, setChecking] = useState(true);
-  const [token, setToken] = useState<string | null>(() => getToken());
+  const { isAuthenticated, isChecking } = useAuth();
 
-  useEffect(() => {
-    setToken(getToken());
-    const timeoutId = window.setTimeout(() => setChecking(false), 300);
-    const syncToken = () => setToken(getToken());
-
-    window.addEventListener("storage", syncToken);
-    return () => {
-      window.clearTimeout(timeoutId);
-      window.removeEventListener("storage", syncToken);
-    };
-  }, []);
-
-  if (checking) {
+  if (isChecking) {
     return <AuthCheckingScreen />;
   }
 
-  return token ? (
+  return isAuthenticated ? (
     <Navigate to="/app" replace />
   ) : (
     <LandingPage />
@@ -121,8 +109,10 @@ const EntryRoute = () => {
 };
 
 const App = () => {
+  const { isAuthenticated } = useAuth();
+
   useEffect(() => {
-    if (!getToken()) {
+    if (!isAuthenticated) {
       return;
     }
 
@@ -194,7 +184,7 @@ const App = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isAuthenticated]);
 
   return (
     <TooltipProvider>

@@ -1,19 +1,19 @@
-﻿import { useNavigate, useLocation } from "react-router-dom";
-import { removeToken } from "@/lib/api";
+﻿import { NavLink } from "@/components/NavLink";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
-  useSidebar,
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+    useSidebar,
 } from "@/components/ui/sidebar";
-import { NavLink } from "@/components/NavLink";
-import { Rocket, LayoutDashboard, FolderGit2, Globe, ScrollText, Settings, LogOut, Search, Zap } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { FolderGit2, Globe, LayoutDashboard, LogOut, Rocket, ScrollText, Search, Settings, Zap } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const navItems = [
   { title: "Overview", url: "/app", icon: LayoutDashboard },
@@ -32,10 +32,10 @@ export function AppSidebar({ onOpenCommandPalette }: AppSidebarProps) {
   const collapsed = state === "collapsed";
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
 
   const handleSignOut = () => {
-    removeToken();
-    window.location.href = "/login";
+    logout();
   };
 
   return (

@@ -92,6 +92,28 @@ export function loginWithGithub() {
   window.location.replace(`${API_BASE}/auth/github/connect`);
 }
 
+export async function verifySession(): Promise<boolean> {
+  const token = getToken();
+  if (!token) {
+    return false;
+  }
+
+  const res = await fetch(`${API_BASE}/auth/me`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (res.ok) {
+    return true;
+  }
+
+  if (res.status === 401) {
+    removeToken();
+  }
+  return false;
+}
+
 export interface GithubRepo {
   id: number;
   name: string;
