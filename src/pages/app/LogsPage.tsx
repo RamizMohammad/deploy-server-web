@@ -63,7 +63,12 @@ export default function LogsPage() {
             {logsLoading ? (
               <SkeletonPanel rows={5} />
             ) : (
-              <LogViewer title={activeDeploymentId ? `deployment/${activeDeploymentId}` : "deployment/logs"} logs={activeLogsResponse?.logs || ""} />
+              <LogViewer
+                title={activeDeploymentId ? `deployment/${activeDeploymentId}` : "deployment/logs"}
+                logs={activeLogsResponse?.logs || ""}
+                streaming={activeDeployment?.status === "building"}
+                status={activeDeployment?.status}
+              />
             )}
             {activeDeployment && (
               <SurfaceCard className="p-4">

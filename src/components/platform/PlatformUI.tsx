@@ -88,59 +88,73 @@ export function MetricCard({
   value,
   icon: Icon,
   trend,
+  trendDirection = "up",
 }: {
   label: string;
   value: string | number;
   icon: React.ElementType;
   trend: string;
+  trendDirection?: "up" | "down" | "flat";
 }) {
+  const trendStyles =
+    trendDirection === "down"
+      ? "border-red-500/20 bg-red-500/10 text-red-300"
+      : trendDirection === "flat"
+        ? "border-zinc-700 bg-zinc-900/70 text-zinc-400"
+        : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300";
+  const TrendArrow = trendDirection === "down" ? "↓" : trendDirection === "flat" ? "→" : "↑";
   return (
     <SurfaceCard interactive className="p-5">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="mt-4 text-3xl font-semibold text-foreground">{value}</p>
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{label}</p>
+          <p className="mt-4 text-3xl font-semibold tracking-tight text-foreground">{value}</p>
         </div>
-        <div className="rounded-md border border-zinc-800 bg-zinc-900/70 p-2 text-primary">
+        <div className="rounded-md border border-zinc-800 bg-zinc-900/70 p-2 text-primary transition group-hover:border-primary/40 group-hover:text-primary">
           <Icon className="h-4 w-4" />
         </div>
       </div>
-      <div className="mt-5 inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300">
+      <div className={cn("mt-5 inline-flex items-center gap-1 rounded-full border px-2 py-1 text-xs", trendStyles)}>
+        <span className="font-mono">{TrendArrow}</span>
         {trend}
       </div>
     </SurfaceCard>
   );
 }
 
-export function StatusBadge({ status }: { status?: string }) {
+export function StatusBadge({ status, size = "md" }: { status?: string; size?: "sm" | "md" }) {
   const normalized = status || "queued";
-  const config: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
+  const config: Record<string, { label: string; className: string; dotClassName: string; icon?: React.ReactNode }> = {
     success: {
       label: "Live",
       className: "border-emerald-500/25 bg-emerald-500/10 text-emerald-300",
-      icon: <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]" />,
+      dotClassName: "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)] animate-status-pulse",
     },
     building: {
       label: "Building",
       className: "border-amber-500/25 bg-amber-500/10 text-amber-300",
+      dotClassName: "bg-amber-300",
       icon: <Loader2 className="h-3 w-3 animate-spin" />,
     },
     failed: {
       label: "Failed",
       className: "border-red-500/25 bg-red-500/10 text-red-300",
+      dotClassName: "bg-red-400",
       icon: <XCircle className="h-3 w-3" />,
     },
     queued: {
       label: "Queued",
-      className: "border-zinc-700 bg-zinc-900 text-zinc-400",
+      className: "border-zinc-700 bg-zinc-900/80 text-zinc-400",
+      dotClassName: "bg-zinc-500",
       icon: <CircleDashed className="h-3 w-3" />,
     },
   };
   const current = config[normalized] || config.queued;
+  const sizing = size === "sm" ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-xs";
 
   return (
-    <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium", current.className)}>
-      {current.icon}
+    <span className={cn("inline-flex items-center gap-1.5 rounded-full border font-medium tracking-wide", sizing, current.className)}>
+      {current.icon ?? <span className={cn("h-1.5 w-1.5 rounded-full", current.dotClassName)} />}
       {current.label}
     </span>
   );
@@ -150,15 +164,17 @@ export function EmptyState({
   title,
   description,
   action,
+  icon,
 }: {
   title: string;
   description: string;
   action?: React.ReactNode;
+  icon?: React.ReactNode;
 }) {
   return (
     <SurfaceCard className="p-10 text-center">
-      <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-lg border border-primary/20 bg-primary/10 text-primary">
-        <RocketGlyph />
+      <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/20 bg-[radial-gradient(circle_at_30%_20%,rgba(14,165,233,0.25),transparent_60%)] text-primary shadow-[0_0_40px_rgba(14,165,233,0.18)]">
+        {icon ?? <RocketGlyph />}
       </div>
       <h3 className="text-lg font-semibold text-foreground">{title}</h3>
       <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">{description}</p>
@@ -169,7 +185,7 @@ export function EmptyState({
 
 function RocketGlyph() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M14.5 4.5c2.2-.7 4.2-.6 5-.1.4.7.6 2.8-.1 5-1.1 3.6-4.5 6.5-8.4 7.3l-3.8.8.8-3.8c.8-3.9 3.7-7.3 6.5-9.2Z" stroke="currentColor" strokeWidth="1.7" />
       <path d="M9.2 15.4 6 18.6M13.7 8.7h.01" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
@@ -230,11 +246,21 @@ export function RepoCard({
   );
 }
 
-export function LogViewer({ title, logs }: { title: string; logs: string }) {
+export function LogViewer({
+  title,
+  logs,
+  streaming = false,
+  status,
+}: {
+  title: string;
+  logs: string;
+  streaming?: boolean;
+  status?: string;
+}) {
   const lines = logs ? logs.split("\n") : [];
   return (
     <SurfaceCard className="overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-zinc-800/80 bg-black/40 px-4 py-3">
+      <div className="flex items-center gap-2 border-b border-zinc-800/80 bg-black/50 px-4 py-3">
         <span className="h-2.5 w-2.5 rounded-full bg-red-400/80" />
         <span className="h-2.5 w-2.5 rounded-full bg-amber-300/80" />
         <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
@@ -242,32 +268,49 @@ export function LogViewer({ title, logs }: { title: string; logs: string }) {
           <Terminal className="h-3.5 w-3.5" />
           {title}
         </span>
+        {status && (
+          <div className="ml-auto">
+            <StatusBadge status={status} size="sm" />
+          </div>
+        )}
       </div>
-      <div className="terminal-bg max-h-[460px] overflow-y-auto p-4">
+      <div className="terminal-bg max-h-[460px] overflow-y-auto p-4 scrollbar-thin">
         {lines.length > 0 ? (
-          lines.map((line, index) => {
-            const tone = /error|failed/i.test(line)
-              ? "text-red-300"
-              : /warn/i.test(line)
-                ? "text-amber-300"
-                : /success|complete|live/i.test(line)
-                  ? "text-emerald-300"
-                  : "text-zinc-400";
-            return (
-              <motion.p
-                key={`${index}-${line}`}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(index * 0.015, 0.35) }}
-                className={cn("flex gap-3 text-sm leading-6", tone)}
-              >
-                <span className="w-8 shrink-0 select-none text-right text-zinc-700">{String(index + 1).padStart(3, " ")}</span>
-                <span>{line}</span>
-              </motion.p>
-            );
-          })
+          <>
+            {lines.map((line, index) => {
+              const tone = /error|fail|fatal/i.test(line)
+                ? "text-red-300"
+                : /warn/i.test(line)
+                  ? "text-amber-300"
+                  : /success|complete|live|ready|✓|done/i.test(line)
+                    ? "text-emerald-300"
+                    : /^\$|^>/.test(line)
+                      ? "text-primary"
+                      : "text-zinc-300/90";
+              return (
+                <motion.p
+                  key={`${index}-${line.slice(0, 24)}`}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(index * 0.012, 0.35), duration: 0.18 }}
+                  className={cn("flex gap-3 font-mono text-[13px] leading-6", tone)}
+                >
+                  <span className="w-8 shrink-0 select-none text-right font-mono text-zinc-700">{String(index + 1).padStart(3, " ")}</span>
+                  <span className="whitespace-pre-wrap break-all">{line || "\u00A0"}</span>
+                </motion.p>
+              );
+            })}
+            {streaming && (
+              <p className="ml-11 mt-1 inline-flex items-center gap-1 font-mono text-[13px] text-emerald-300">
+                <span className="inline-block h-3.5 w-1.5 animate-blink-caret bg-emerald-300" />
+              </p>
+            )}
+          </>
         ) : (
-          <p className="text-sm text-zinc-600">Logs will stream here when a deployment starts.</p>
+          <div className="flex items-center gap-2 font-mono text-sm text-zinc-600">
+            <span className="inline-block h-3.5 w-1.5 animate-blink-caret bg-zinc-500" />
+            <span>Waiting for log stream…</span>
+          </div>
         )}
       </div>
     </SurfaceCard>
