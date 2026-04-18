@@ -27,7 +27,7 @@ const FAKE_LOGS = [
   { text: "Deploying to edge network...", type: "info" as const },
   { text: "Propagating to 34 edge locations...", type: "info" as const },
   { text: "✓ Deployment successful!", type: "success" as const },
-  { text: "→ https://my-app.launchly.app", type: "success" as const },
+  { text: "→ https://my-app.launchly.systems", type: "success" as const },
 ];
 
 const FEATURES = [
@@ -263,7 +263,7 @@ export default function LandingPage() {
               <div className="terminal-bg p-5 space-y-2">
                 <p className="text-sm font-mono text-muted-foreground"><span className="text-primary">$</span> npx launchly init</p>
                 <p className="text-sm font-mono text-muted-foreground"><span className="text-primary">$</span> launchly deploy --prod</p>
-                <p className="text-sm font-mono text-success">✓ Deployed to https://my-app.launchly.app</p>
+                <p className="text-sm font-mono text-success">✓ Deployed to https://my-app.launchly.systems</p>
               </div>
             </motion.div>
 

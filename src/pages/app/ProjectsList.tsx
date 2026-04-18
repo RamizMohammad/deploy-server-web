@@ -1,108 +1,364 @@
-import { useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FolderGit2, Search, Plus, Clock, ArrowUpRight } from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock, Code2, FolderGit2, GitBranch, Loader2, Plus, Search, ShieldCheck, Sparkles, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { useQuery } from "@tanstack/react-query";
-import { deploymentsQueryOptions, projectsQueryOptions } from "@/lib/query";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { api, type GithubRepo } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { deploymentsQueryOptions, projectsQueryOptions, queryKeys } from "@/lib/query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  EmptyState,
+  PageFrame,
+  PageHeader,
+  RepoCard,
+  SkeletonPanel,
+  StatusBadge,
+  Stepper,
+  SurfaceCard,
+} from "@/components/platform/PlatformUI";
 
-const StatusBadge = ({ status }: { status: string }) => {
-  const map: Record<string, { bg: string; text: string; label: string }> = {
-    success: { bg: "bg-success/10 border-success/20", text: "text-success", label: "Live" },
-    building: { bg: "bg-warning/10 border-warning/20", text: "text-warning", label: "Building" },
-    failed: { bg: "bg-destructive/10 border-destructive/20", text: "text-destructive", label: "Failed" },
-    queued: { bg: "bg-muted border-border", text: "text-muted-foreground", label: "Queued" },
-    idle: { bg: "bg-muted border-border", text: "text-muted-foreground", label: "Idle" },
-  };
-  const s = map[status] || map.idle;
-  return <span className={`text-xs px-2 py-0.5 rounded-full border ${s.bg} ${s.text}`}>{s.label}</span>;
-};
+const REPO_BATCH_SIZE = 10;
+const REPO_CACHE_KEY = "launchly:github_repos:first_page:v1";
+const importSteps = ["Select Repo", "Detect Framework", "Configure Build", "Environment", "Deploy"];
+
+function readCachedFirstPage(): GithubRepo[] {
+  try {
+    const raw = localStorage.getItem(REPO_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as GithubRepo[] | { repos?: GithubRepo[] };
+    if (Array.isArray(parsed)) return parsed;
+    return Array.isArray(parsed?.repos) ? parsed.repos : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCachedFirstPage(repos: GithubRepo[]) {
+  try {
+    localStorage.setItem(REPO_CACHE_KEY, JSON.stringify({ repos: repos.slice(0, REPO_BATCH_SIZE), updatedAt: Date.now() }));
+  } catch {
+    // Storage can fail in private browsing; the app should still work.
+  }
+}
 
 export default function ProjectsList() {
   const [search, setSearch] = useState("");
+  const [repoSearch, setRepoSearch] = useState("");
+  const [selectedRepo, setSelectedRepo] = useState<GithubRepo | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [deployingRepoId, setDeployingRepoId] = useState<number | null>(null);
   const navigate = useNavigate();
-  const { data: projects = [] } = useQuery(projectsQueryOptions);
+  const queryClient = useQueryClient();
+  const cachedFirstPage = useMemo(() => readCachedFirstPage(), []);
+
+  const { data: projects = [], isLoading: projectsLoading } = useQuery(projectsQueryOptions);
   const { data: deployments = [] } = useQuery(deploymentsQueryOptions);
+
+  const {
+    data: repoPages,
+    isLoading: reposLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    isError: reposError,
+    refetch: refetchRepos,
+  } = useInfiniteQuery({
+    queryKey: [...queryKeys.githubRepos, "infinite", REPO_BATCH_SIZE],
+    initialPageParam: 1,
+    queryFn: ({ pageParam, signal }) =>
+      api.get<GithubRepo[]>(`/auth/github/repos?page=${pageParam}&per_page=${REPO_BATCH_SIZE}`, { signal }),
+    getNextPageParam: (lastPage, allPages) => (lastPage.length === REPO_BATCH_SIZE ? allPages.length + 1 : undefined),
+    initialData: cachedFirstPage.length > 0 ? { pageParams: [1], pages: [cachedFirstPage] } : undefined,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+  });
+
+  const repos = useMemo(() => {
+    const flattened = repoPages?.pages.flat() ?? [];
+    const seen = new Set<number>();
+    return flattened.filter((repo) => {
+      if (seen.has(repo.id)) return false;
+      seen.add(repo.id);
+      return true;
+    });
+  }, [repoPages]);
+
+  useEffect(() => {
+    if (repos.length > 0) writeCachedFirstPage(repos);
+  }, [repos]);
+
+  useEffect(() => {
+    if (!hasNextPage || isFetchingNextPage) return;
+    const id = window.setTimeout(() => {
+      void fetchNextPage();
+    }, 250);
+    return () => window.clearTimeout(id);
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, repos.length]);
+
+  useEffect(() => {
+    if (!selectedRepo) return;
+    setCurrentStep(0);
+    const timers = [
+      window.setTimeout(() => setCurrentStep(1), 280),
+      window.setTimeout(() => setCurrentStep(2), 920),
+      window.setTimeout(() => setCurrentStep(3), 1380),
+    ];
+    return () => timers.forEach(window.clearTimeout);
+  }, [selectedRepo]);
 
   const latestStatusByProject = useMemo(() => {
     const map = new Map<string, string>();
-    for (const d of deployments) {
-      if (!map.has(d.project_name)) {
-        map.set(d.project_name, d.status);
+    for (const deployment of deployments) {
+      if (!map.has(deployment.project_name)) {
+        map.set(deployment.project_name, deployment.status);
       }
     }
     return map;
   }, [deployments]);
 
-  const filtered = projects.filter((p) =>
-    p.repo_name.toLowerCase().includes(search.toLowerCase()) ||
-    p.repo_url.toLowerCase().includes(search.toLowerCase())
+  const filteredProjects = projects.filter((project) =>
+    project.repo_name.toLowerCase().includes(search.toLowerCase()) ||
+    project.repo_url.toLowerCase().includes(search.toLowerCase())
   );
 
+  const filteredRepos = repos.filter((repo) =>
+    repo.name.toLowerCase().includes(repoSearch.toLowerCase()) ||
+    (repo.description || "").toLowerCase().includes(repoSearch.toLowerCase())
+  );
+
+  const deployRepo = async (repo: GithubRepo) => {
+    try {
+      setDeployingRepoId(repo.id);
+      setCurrentStep(4);
+      await api.post("/deploy", {
+        repo_name: repo.name,
+        branch: repo.default_branch || "main",
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.projects }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.deployments }),
+      ]);
+      toast.success(`Deployment started for ${repo.name}`);
+      setSelectedRepo(null);
+      navigate("/app/projects");
+    } catch {
+      toast.error("Failed to start deployment. Please check backend logs.");
+    } finally {
+      setDeployingRepoId(null);
+    }
+  };
+
   return (
-    <div className="p-6 md:p-8 max-w-6xl">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground mb-1">Projects</h1>
-            <p className="text-muted-foreground">Manage your deployed projects.</p>
-          </div>
-          <Button onClick={() => navigate("/app/new")} className="bg-foreground text-background hover:bg-foreground/90 gap-2">
+    <PageFrame>
+      <PageHeader
+        eyebrow="Projects"
+        title="Deploy from GitHub"
+        description="Manage production apps, import repositories, and watch deployments move through the pipeline."
+        action={
+          <Button onClick={() => navigate("/app/new")} className="gap-2 rounded-lg bg-foreground text-background transition hover:scale-[1.02] hover:bg-foreground/90">
             <Plus className="h-4 w-4" /> New Project
           </Button>
-        </div>
+        }
+      />
 
-        <div className="relative w-full max-w-sm mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search projects..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-secondary/50 border-border/50 h-9" />
-        </div>
-      </motion.div>
+      <Tabs defaultValue="projects" className="space-y-6">
+        <TabsList className="h-11 border border-zinc-800/80 bg-zinc-950/70 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <TabsTrigger value="projects" className="data-[state=active]:bg-white/10 data-[state=active]:text-foreground">Your Projects</TabsTrigger>
+          <TabsTrigger value="github" className="data-[state=active]:bg-white/10 data-[state=active]:text-foreground">Import from GitHub</TabsTrigger>
+        </TabsList>
 
-      <div className="grid gap-4">
-        {filtered.map((p, i) => (
-          <motion.div
-            key={p.id}
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.05 }}
-            onClick={() => navigate(`/app/projects/${p.id}`)}
-            className="glass-hover rounded-xl px-6 py-5 cursor-pointer group"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <FolderGit2 className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2.5">
-                    <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">{p.repo_name}</h3>
-                    <StatusBadge status={latestStatusByProject.get(p.repo_name) || "idle"} />
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5 font-mono">{p.repo_url}</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-5">
-                <div className="text-right hidden sm:block">
-                  <p className="text-xs text-muted-foreground">{p.branch}</p>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                    <Clock className="h-3 w-3" /> {new Date(p.created_at).toLocaleDateString()}
-                  </div>
-                </div>
-                <ArrowUpRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            </div>
-          </motion.div>
-        ))}
-
-        {filtered.length === 0 && (
-          <div className="glass rounded-xl p-12 text-center">
-            <FolderGit2 className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-            <p className="text-muted-foreground mb-4">No projects found.</p>
-            <Button onClick={() => navigate("/app/new")} className="bg-foreground text-background hover:bg-foreground/90">Import Project</Button>
+        <TabsContent value="projects" className="space-y-5">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search projects..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="h-11 border-zinc-800 bg-zinc-950/70 pl-9"
+            />
           </div>
-        )}
-      </div>
-    </div>
+
+          {projectsLoading ? (
+            <SkeletonPanel rows={5} />
+          ) : filteredProjects.length > 0 ? (
+            <div className="grid gap-4">
+              {filteredProjects.map((project, index) => (
+                <motion.button
+                  key={project.id}
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.04 }}
+                  onClick={() => navigate(`/app/projects/${project.id}`)}
+                  className="group text-left"
+                >
+                  <SurfaceCard interactive className="px-6 py-5">
+                    <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+                      <div className="flex min-w-0 items-center gap-4">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
+                          <FolderGit2 className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2.5">
+                            <h3 className="truncate text-base font-semibold text-foreground transition group-hover:text-primary">{project.repo_name}</h3>
+                            <StatusBadge status={latestStatusByProject.get(project.repo_name) || "queued"} />
+                          </div>
+                          <p className="mt-1 truncate font-mono text-xs text-muted-foreground">{project.repo_url}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-5 text-xs text-muted-foreground">
+                        <span className="inline-flex items-center gap-1"><GitBranch className="h-3.5 w-3.5" />{project.branch || "main"}</span>
+                        <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{new Date(project.created_at).toLocaleDateString()}</span>
+                        <ArrowRight className="h-4 w-4 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
+                      </div>
+                    </div>
+                  </SurfaceCard>
+                </motion.button>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="No projects found"
+              description="Import a GitHub repo to create a Launchly project with deployments, logs, and production status."
+              action={<Button onClick={() => navigate("/app/new")} className="bg-foreground text-background hover:bg-foreground/90">Import Project</Button>}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="github" className="space-y-5">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="relative max-w-md flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search repositories..."
+                value={repoSearch}
+                onChange={(event) => setRepoSearch(event.target.value)}
+                className="h-11 border-zinc-800 bg-zinc-950/70 pl-9"
+              />
+            </div>
+            <div className="rounded-full border border-zinc-800 bg-zinc-950/70 px-3 py-1.5 text-xs text-muted-foreground">
+              {repos.length} repos cached{hasNextPage || isFetchingNextPage ? " and warming" : ""}
+            </div>
+          </div>
+
+          {reposLoading ? (
+            <SkeletonPanel rows={6} />
+          ) : reposError ? (
+            <EmptyState
+              title="Could not load GitHub repositories"
+              description="Launchly could not reach the GitHub repo endpoint. Your existing projects are still available."
+              action={<Button onClick={() => refetchRepos()} variant="outline">Retry GitHub sync</Button>}
+            />
+          ) : filteredRepos.length > 0 ? (
+            <div className="grid gap-4 lg:grid-cols-2">
+              {filteredRepos.map((repo, index) => (
+                <motion.div
+                  key={repo.id}
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(index * 0.03, 0.36) }}
+                >
+                  <RepoCard repo={repo} onImport={() => setSelectedRepo(repo)} actionLabel="Configure" />
+                  <div className="mt-2 flex items-center gap-3 px-1 text-[11px] text-muted-foreground">
+                    <span>{repo.private ? "Private" : "Public"}</span>
+                    <span className="h-1 w-1 rounded-full bg-zinc-700" />
+                    <span>Updated {new Date(repo.updated_at).toLocaleDateString()}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="No repositories found"
+              description="Try a different search or reconnect GitHub if this account has no visible repositories."
+              action={<Button onClick={() => setRepoSearch("")} variant="outline">Clear search</Button>}
+            />
+          )}
+
+          {isFetchingNextPage && (
+            <SurfaceCard className="p-4">
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                Fetching the next batch of 10 repositories...
+              </div>
+            </SurfaceCard>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      <Dialog open={Boolean(selectedRepo)} onOpenChange={(open) => !open && setSelectedRepo(null)}>
+        <DialogContent className="max-w-3xl border-zinc-800 bg-[#090D13]/95 p-0 text-foreground shadow-[0_30px_120px_rgba(0,0,0,0.65)] backdrop-blur-2xl">
+          {selectedRepo && (
+            <div className="overflow-hidden rounded-lg">
+              <DialogHeader className="border-b border-zinc-800/80 px-6 py-5">
+                <DialogTitle className="flex items-center gap-2 text-xl">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  Import {selectedRepo.name}
+                </DialogTitle>
+                <DialogDescription>Launchly will detect your framework, prepare build settings, and start the first deployment.</DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6 px-6 py-6">
+                <Stepper steps={importSteps} current={currentStep} />
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <SurfaceCard className="p-5">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary"><Code2 className="h-4 w-4" /></div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">Framework detection</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">Scanning package files and project structure.</p>
+                        <p className="mt-3 text-xs text-emerald-300">Next.js / Node compatible pipeline ready</p>
+                      </div>
+                    </div>
+                  </SurfaceCard>
+
+                  <SurfaceCard className="p-5">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2 text-emerald-300"><ShieldCheck className="h-4 w-4" /></div>
+                      <div>
+                        <h3 className="font-semibold text-foreground">Deployment guardrails</h3>
+                        <p className="mt-1 text-sm text-muted-foreground">Build command and env checks are staged before release.</p>
+                        <p className="mt-3 text-xs text-muted-foreground">Branch: {selectedRepo.default_branch || "main"}</p>
+                      </div>
+                    </div>
+                  </SurfaceCard>
+                </div>
+
+                <SurfaceCard className="overflow-hidden">
+                  <div className="flex items-center gap-2 border-b border-zinc-800/80 px-4 py-3 font-mono text-xs text-muted-foreground">
+                    <Terminal className="h-3.5 w-3.5" /> launchly/import-check
+                  </div>
+                  <div className="space-y-2 p-4 font-mono text-sm">
+                    {["Resolving repository metadata", "Detecting framework preset", "Preparing build environment", "Waiting for deploy command"].map((line, index) => (
+                      <div key={line} className={cn("flex items-center gap-2", index <= currentStep ? "text-emerald-300" : "text-zinc-600")}>
+                        {index <= currentStep ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Loader2 className="h-3.5 w-3.5" />}
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                </SurfaceCard>
+              </div>
+
+              <DialogFooter className="border-t border-zinc-800/80 px-6 py-5">
+                <Button variant="outline" onClick={() => setSelectedRepo(null)}>Cancel</Button>
+                <Button
+                  onClick={() => deployRepo(selectedRepo)}
+                  disabled={deployingRepoId === selectedRepo.id}
+                  className="gap-2 bg-foreground text-background hover:bg-foreground/90"
+                >
+                  {deployingRepoId === selectedRepo.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  Deploy project
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </PageFrame>
   );
 }

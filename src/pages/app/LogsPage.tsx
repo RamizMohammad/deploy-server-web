@@ -1,114 +1,85 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ScrollText, Loader2 } from "lucide-react";
-import { api, type Deployment, type DeploymentLogsResponse } from "@/lib/api";
+import { Clock, ScrollText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { deploymentLogsQueryOptions, deploymentsQueryOptions } from "@/lib/query";
+import { useQuery } from "@tanstack/react-query";
+import { DeploymentItem, EmptyState, LogViewer, PageFrame, PageHeader, SkeletonPanel, StatusBadge, SurfaceCard } from "@/components/platform/PlatformUI";
 
 export default function LogsPage() {
-  const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [activeDeploymentId, setActiveDeploymentId] = useState<string | null>(null);
-  const [activeLogs, setActiveLogs] = useState<string>("");
-  const [loading, setLoading] = useState(true);
+  const { data: deployments = [], isLoading } = useQuery(deploymentsQueryOptions);
 
   useEffect(() => {
-    let mounted = true;
-    const load = async () => {
-      setLoading(true);
-      try {
-        const data = await api.get<Deployment[]>("/deployments");
-        if (!mounted) return;
-        setDeployments(data);
-
-        if (data.length > 0) {
-          const first = data[0];
-          setActiveDeploymentId(first.id);
-          const logs = await api.get<DeploymentLogsResponse>(`/deployments/${first.id}/logs`);
-          if (!mounted) return;
-          setActiveLogs(logs.logs || "");
-        }
-      } catch {
-        if (!mounted) return;
-        setDeployments([]);
-        setActiveLogs("");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    };
-
-    load();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const openLogs = async (deploymentId: string) => {
-    setActiveDeploymentId(deploymentId);
-    try {
-      const logs = await api.get<DeploymentLogsResponse>(`/deployments/${deploymentId}/logs`);
-      setActiveLogs(logs.logs || "");
-    } catch {
-      setActiveLogs("");
+    if (!activeDeploymentId && deployments.length > 0) {
+      setActiveDeploymentId(deployments[0].id);
     }
-  };
+  }, [activeDeploymentId, deployments]);
+
+  const activeDeployment = deployments.find((deployment) => deployment.id === activeDeploymentId) || null;
+
+  const { data: activeLogsResponse, isLoading: logsLoading, refetch } = useQuery({
+    ...deploymentLogsQueryOptions(activeDeploymentId ?? ""),
+    enabled: Boolean(activeDeploymentId),
+  });
 
   return (
-    <div className="p-6 md:p-8 max-w-6xl">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-foreground mb-1">Logs</h1>
-        <p className="text-muted-foreground mb-8">Build logs across all projects.</p>
-      </motion.div>
+    <PageFrame>
+      <PageHeader
+        eyebrow="Observability"
+        title="Logs"
+        description="Inspect build output across deployments with terminal-style streaming feedback and status context."
+      />
 
-      {loading ? (
-        <div className="glass rounded-xl p-10 text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">Loading logs...</p>
-        </div>
+      {isLoading ? (
+        <SkeletonPanel rows={6} />
+      ) : deployments.length === 0 ? (
+        <EmptyState
+          title="No deployment logs yet"
+          description="Deploy a project and Launchly will stream build logs, warnings, and success events here."
+        />
       ) : (
-        <div className="grid lg:grid-cols-3 gap-5">
-          <div className="glass rounded-xl overflow-hidden lg:col-span-1">
-            <div className="px-4 py-3 border-b border-border/30 text-sm font-medium text-foreground">Deployments</div>
-            <div className="max-h-[600px] overflow-y-auto divide-y divide-border/20">
-              {deployments.map((d) => (
-                <button
-                  key={d.id}
-                  onClick={() => openLogs(d.id)}
-                  className={`w-full text-left px-4 py-3 hover:bg-secondary/30 transition-colors ${
-                    activeDeploymentId === d.id ? "bg-secondary/40" : ""
-                  }`}
-                >
-                  <p className="text-sm font-medium text-foreground">{d.project_name}</p>
-                  <p className="text-xs text-muted-foreground font-mono">{d.id}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{new Date(d.created_at).toLocaleString()}</p>
-                </button>
+        <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
+          <SurfaceCard className="overflow-hidden">
+            <div className="flex items-center justify-between border-b border-zinc-800/80 px-5 py-4">
+              <div>
+                <h2 className="font-semibold text-foreground">Deployments</h2>
+                <p className="mt-1 text-xs text-muted-foreground">Select a build to inspect logs.</p>
+              </div>
+              <ScrollText className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <div className="max-h-[620px] overflow-y-auto">
+              {deployments.map((deployment, index) => (
+                <motion.div key={deployment.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.035 }}>
+                  <div className={activeDeploymentId === deployment.id ? "bg-white/[0.035]" : ""}>
+                    <DeploymentItem deployment={deployment} onClick={() => setActiveDeploymentId(deployment.id)} />
+                  </div>
+                </motion.div>
               ))}
-              {deployments.length === 0 && (
-                <p className="px-4 py-8 text-center text-sm text-muted-foreground">No deployments available.</p>
-              )}
             </div>
-          </div>
+          </SurfaceCard>
 
-          <div className="glass rounded-xl overflow-hidden lg:col-span-2">
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-border/30">
-              <div className="w-3 h-3 rounded-full bg-destructive/60" />
-              <div className="w-3 h-3 rounded-full bg-warning/60" />
-              <div className="w-3 h-3 rounded-full bg-success/60" />
-              <span className="ml-2 text-xs text-muted-foreground font-mono">{activeDeploymentId || "No deployment selected"}</span>
-              <ScrollText className="h-4 w-4 text-muted-foreground ml-auto" />
-            </div>
-            <div className="terminal-bg p-4 max-h-[600px] overflow-y-auto space-y-1">
-              {activeLogs ? (
-                activeLogs.split("\n").map((line, i) => (
-                  <p key={`${i}-${line}`} className="text-sm font-mono text-muted-foreground">
-                    <span className="text-muted-foreground/40 shrink-0 mr-3">{String(i + 1).padStart(3, " ")}</span>
-                    {line}
-                  </p>
-                ))
-              ) : (
-                <p className="text-sm text-muted-foreground/50 font-mono">No logs available.</p>
-              )}
-            </div>
+          <div className="space-y-4">
+            {logsLoading ? (
+              <SkeletonPanel rows={5} />
+            ) : (
+              <LogViewer title={activeDeploymentId ? `deployment/${activeDeploymentId}` : "deployment/logs"} logs={activeLogsResponse?.logs || ""} />
+            )}
+            {activeDeployment && (
+              <SurfaceCard className="p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <StatusBadge status={activeDeployment.status} />
+                    <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{new Date(activeDeployment.created_at).toLocaleString()}</span>
+                    <span className="font-mono">{activeDeployment.commit_hash || "n/a"}</span>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => refetch()}>Refresh logs</Button>
+                </div>
+              </SurfaceCard>
+            )}
           </div>
         </div>
       )}
-    </div>
+    </PageFrame>
   );
 }

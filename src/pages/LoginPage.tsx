@@ -47,7 +47,7 @@ export default function LoginPage() {
               <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
               <span className="text-xs text-success font-mono">Production</span>
             </div>
-            <p className="text-xs text-muted-foreground font-mono">my-app.launchly.app</p>
+            <p className="text-xs text-muted-foreground font-mono">my-app.launchly.systems</p>
             <p className="text-xs text-muted-foreground mt-1">Deployed 2m ago · 24s build</p>
           </motion.div>
         </motion.div>

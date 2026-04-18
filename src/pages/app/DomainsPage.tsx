@@ -1,22 +1,62 @@
-import { motion } from "framer-motion";
-import { Globe, Info } from "lucide-react";
+﻿import { Globe, Info, LockKeyhole, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { EmptyState, PageFrame, PageHeader, SurfaceCard } from "@/components/platform/PlatformUI";
 
 export default function DomainsPage() {
   return (
-    <div className="p-6 md:p-8 max-w-4xl">
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-foreground mb-1">Domains</h1>
-        <p className="text-muted-foreground mb-8">Manage custom domains across your projects.</p>
-      </motion.div>
+    <PageFrame className="max-w-5xl">
+      <PageHeader
+        eyebrow="Networking"
+        title="Domains"
+        description="Prepare custom domains, SSL, and routing controls for deployed applications."
+      />
 
-      <div className="glass rounded-xl p-10 text-center">
-        <Globe className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-        <p className="text-foreground font-medium mb-2">Domain management is not available yet</p>
-        <p className="text-sm text-muted-foreground inline-flex items-center gap-2">
-          <Info className="h-4 w-4" />
-          Your backend currently exposes projects, deployments, logs, and GitHub repo APIs only.
-        </p>
+      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+        <EmptyState
+          title="Domain management is coming next"
+          description="Your backend currently exposes projects, deployments, logs, and GitHub repo APIs. This page is ready for the domain API when it lands."
+          action={<Button variant="outline">Read setup requirements</Button>}
+        />
+
+        <div className="space-y-4">
+          <SurfaceCard className="p-5">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg border border-primary/20 bg-primary/10 p-2 text-primary"><Globe className="h-4 w-4" /></div>
+              <div>
+                <h3 className="font-semibold text-foreground">Automatic routing</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Attach domains to deployments once the backend endpoint is available.</p>
+              </div>
+            </div>
+          </SurfaceCard>
+          <SurfaceCard className="p-5">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2 text-emerald-300"><LockKeyhole className="h-4 w-4" /></div>
+              <div>
+                <h3 className="font-semibold text-foreground">Managed SSL</h3>
+                <p className="mt-1 text-sm text-muted-foreground">A future certificate worker can show verification status here.</p>
+              </div>
+            </div>
+          </SurfaceCard>
+          <SurfaceCard className="p-5">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg border border-zinc-700 bg-zinc-900 p-2 text-zinc-300"><Info className="h-4 w-4" /></div>
+              <div>
+                <h3 className="font-semibold text-foreground">Backend note</h3>
+                <p className="mt-1 text-sm text-muted-foreground">No mock domains are shown. Launchly waits for real domain data.</p>
+              </div>
+            </div>
+          </SurfaceCard>
+          <SurfaceCard className="p-5">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg border border-accent/20 bg-accent/10 p-2 text-accent"><Sparkles className="h-4 w-4" /></div>
+              <div>
+                <h3 className="font-semibold text-foreground">Product-ready slot</h3>
+                <p className="mt-1 text-sm text-muted-foreground">The UI is structured for verification, DNS records, and project mapping.</p>
+              </div>
+            </div>
+          </SurfaceCard>
+        </div>
       </div>
-    </div>
+    </PageFrame>
   );
 }
