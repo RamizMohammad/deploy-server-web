@@ -1,11 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Rocket, Github, Mail } from "lucide-react";
+import { Rocket, Github, ArrowRight, ShieldCheck, Zap, Globe } from "lucide-react";
 import { loginWithGithub, isAuthenticated } from "@/lib/api";
-import { useEffect } from "react";
+
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -23,77 +22,73 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left - Branding */}
-      <div className="hidden lg:flex flex-1 relative overflow-hidden items-center justify-center bg-card/30">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5" />
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-primary/8 rounded-full blur-[150px]" />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8 }}
-          className="relative z-10 text-center px-12"
-        >
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <Rocket className="h-10 w-10 text-primary" />
-            <span className="text-3xl font-bold text-foreground">Launchly</span>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#070A0F] px-6 text-foreground">
+      {/* Ambient gradient + grid */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(14,165,233,0.22),transparent_45%),radial-gradient(circle_at_82%_78%,rgba(139,92,246,0.18),transparent_45%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] [background-size:48px_48px]" />
+      <div className="pointer-events-none absolute -top-32 left-1/2 h-[420px] w-[820px] -translate-x-1/2 rounded-full bg-primary/15 blur-[140px]" />
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 w-full max-w-md"
+      >
+        {/* Brand */}
+        <div className="mb-7 flex items-center justify-center gap-3">
+          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-[0_0_30px_rgba(14,165,233,0.25)]">
+            <Rocket className="h-5 w-5" />
+            <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_14px_rgba(52,211,153,0.8)]" />
           </div>
-          <h2 className="text-2xl font-semibold text-foreground mb-3">Ship faster than ever</h2>
-          <p className="text-muted-foreground max-w-sm mx-auto">Push code, deploy globally, iterate instantly. The modern deployment platform.</p>
+          <span className="text-xl font-bold tracking-tight">Launchly</span>
+        </div>
 
-          {/* Animated deployment */}
-          <motion.div className="mt-12 glass rounded-xl p-4 max-w-xs mx-auto text-left" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
-              <span className="text-xs text-success font-mono">Production</span>
-            </div>
-            <p className="text-xs text-muted-foreground font-mono">my-app.launchly.app</p>
-            <p className="text-xs text-muted-foreground mt-1">Deployed 2m ago · 24s build</p>
-          </motion.div>
-        </motion.div>
-      </div>
+        {/* Card */}
+        <div className="relative overflow-hidden rounded-2xl border border-zinc-800/80 bg-zinc-950/70 p-8 shadow-[0_40px_140px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent)]" />
 
-      {/* Right - Auth */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-sm"
-        >
-          <div className="lg:hidden flex items-center gap-2 mb-8">
-            <Rocket className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold text-foreground">Launchly</span>
-          </div>
+          <div className="relative">
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.18em] text-primary/80">Sign in</p>
+            <h1 className="text-2xl font-bold text-foreground md:text-3xl">Welcome back, developer</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Use your GitHub account to deploy and manage Launchly projects.</p>
 
-          <h1 className="text-2xl font-bold text-foreground mb-2">Welcome back</h1>
-          <p className="text-muted-foreground mb-8">Sign in to your account to continue</p>
-
-          <Button onClick={handleGithubLogin} disabled={loading} className="w-full bg-foreground text-background hover:bg-foreground/90 gap-2 mb-4 h-11">
-            <Github className="h-4 w-4" />
-            {loading ? "Redirecting to GitHub..." : "Continue with GitHub"}
-          </Button>
-
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border/30" /></div>
-            <div className="relative flex justify-center"><span className="px-3 bg-background text-xs text-muted-foreground">or</span></div>
-          </div>
-
-          <div className="space-y-3">
-            <Input placeholder="Email" className="bg-secondary/50 border-border/50 h-11" />
-            <Input type="password" placeholder="Password" className="bg-secondary/50 border-border/50 h-11" />
-            <Button disabled variant="outline" className="w-full h-11 border-border/50 hover:bg-secondary/50 gap-2 opacity-50 cursor-not-allowed">
-              <Mail className="h-4 w-4" />
-              Sign in with Email (coming soon)
+            <Button
+              onClick={handleGithubLogin}
+              disabled={loading}
+              className="mt-7 h-11 w-full gap-2 rounded-lg bg-foreground text-background transition hover:scale-[1.01] hover:bg-foreground/90"
+            >
+              <Github className="h-4 w-4" />
+              {loading ? "Redirecting to GitHub…" : "Continue with GitHub"}
+              <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
-          </div>
 
-          <p className="text-xs text-muted-foreground text-center mt-8">
-            Don't have an account?{" "}
-            <button onClick={handleGithubLogin} className="text-primary hover:underline">Sign up with GitHub</button>
-          </p>
-        </motion.div>
-      </div>
+            <div className="my-7 flex items-center gap-3 text-xs text-muted-foreground">
+              <span className="h-px flex-1 bg-zinc-800" />
+              <span>secured by GitHub OAuth</span>
+              <span className="h-px flex-1 bg-zinc-800" />
+            </div>
+
+            <div className="grid gap-3">
+              <Feature icon={<ShieldCheck className="h-3.5 w-3.5" />} text="No tokens stored client-side. JWT-only auth." />
+              <Feature icon={<Zap className="h-3.5 w-3.5" />} text="Automatic framework detection on import." />
+              <Feature icon={<Globe className="h-3.5 w-3.5" />} text="Live deployment status, logs, and rollbacks." />
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          By continuing you agree to Launchly's terms and privacy notice.
+        </p>
+      </motion.div>
+    </div>
+  );
+}
+
+function Feature({ icon, text }: { icon: React.ReactNode; text: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-zinc-800/70 bg-zinc-950/60 px-3 py-2.5 text-xs text-muted-foreground">
+      <span className="flex h-6 w-6 items-center justify-center rounded-md border border-primary/20 bg-primary/10 text-primary">{icon}</span>
+      {text}
     </div>
   );
 }

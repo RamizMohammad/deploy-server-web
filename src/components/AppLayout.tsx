@@ -1,5 +1,6 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { CommandPalette } from "@/components/CommandPalette";
@@ -7,6 +8,7 @@ import { Activity, Command, Sparkles } from "lucide-react";
 
 export function AppLayout() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const location = useLocation();
 
   return (
     <SidebarProvider>
@@ -28,6 +30,10 @@ export function AppLayout() {
             <div className="flex-1" />
             <div className="flex items-center gap-3">
               <div className="hidden items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs text-emerald-300 sm:flex">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                </span>
                 <Activity className="h-3.5 w-3.5" />
                 Systems operational
               </div>
@@ -37,7 +43,17 @@ export function AppLayout() {
             </div>
           </header>
           <main className="relative flex-1 overflow-auto">
-            <Outlet />
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
           </main>
         </div>
       </div>

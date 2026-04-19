@@ -192,7 +192,12 @@ export default function ProjectDetailPage() {
         </TabsContent>
 
         <TabsContent value="logs" className="space-y-4">
-          <LogViewer title={selectedDeployment ? `deployment/${selectedDeployment.id}` : "deployment/logs"} logs={selectedLogs} />
+          <LogViewer
+            title={selectedDeployment ? `deployment/${selectedDeployment.id}` : "deployment/logs"}
+            logs={selectedLogs}
+            streaming={selectedDeployment?.status === "building"}
+            status={selectedDeployment?.status}
+          />
           {selectedDeployment && (
             <div className="flex flex-wrap items-center gap-6 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1"><Clock className="h-3 w-3" />{new Date(selectedDeployment.created_at).toLocaleString()}</span>
