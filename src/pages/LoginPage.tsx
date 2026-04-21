@@ -69,7 +69,7 @@ export default function LoginPage() {
             </div>
 
             <div className="grid gap-3">
-              <Feature icon={<ShieldCheck className="h-3.5 w-3.5" />} text="No tokens stored client-side. JWT-only auth." />
+              <Feature icon={<ShieldCheck className="h-3.5 w-3.5" />} text="GitHub OAuth with one-time auth-code exchange." />
               <Feature icon={<Zap className="h-3.5 w-3.5" />} text="Automatic framework detection on import." />
               <Feature icon={<Globe className="h-3.5 w-3.5" />} text="Live deployment status, logs, and rollbacks." />
             </div>

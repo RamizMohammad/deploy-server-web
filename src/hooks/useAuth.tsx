@@ -1,4 +1,4 @@
-import { isAuthenticated as checkAuth, getToken, removeToken, verifySession } from "@/lib/api";
+import { isAuthenticated as checkAuth, getToken, logoutRequest, removeToken, verifySession } from "@/lib/api";
 import { queryClient } from "@/lib/query";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
@@ -21,30 +21,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [checking, setChecking] = useState(true);
 
   const refresh = useCallback(async () => {
-    if (!getToken()) {
+    try {
+      if (!getToken()) {
+        console.log("[AuthProvider] No token found, marking as unauthenticated");
+        setAuthed(false);
+        setChecking(false);
+        return;
+      }
+
+      console.log("[AuthProvider] Verifying session with backend...");
+      setChecking(true);
+      const valid = await verifySession();
+      console.log("[AuthProvider] Session verification result:", valid);
+      setAuthed(valid);
+      setChecking(false);
+    } catch (error) {
+      console.error("[AuthProvider] Unexpected error during refresh:", error);
       setAuthed(false);
       setChecking(false);
-      return;
     }
-
-    setChecking(true);
-    const valid = await verifySession();
-    setAuthed(valid);
-    setChecking(false);
   }, []);
 
   useEffect(() => {
     let active = true;
+    console.log("[AuthProvider] Initializing auth check");
+    
     const run = async () => {
-      await refresh();
-      if (!active) return;
+      try {
+        await refresh();
+        if (!active) return;
+      } catch (error) {
+        console.error("[AuthProvider] Error in initial auth check:", error);
+        if (active) {
+          setAuthed(false);
+          setChecking(false);
+        }
+      }
     };
+    
     void run();
 
     const syncToken = () => {
       if (!active) return;
-      setAuthed(checkAuth());
+      const newAuthState = checkAuth();
+      console.log("[AuthProvider] Storage event triggered, new auth state:", newAuthState);
+      setAuthed(newAuthState);
     };
+    
     window.addEventListener("storage", syncToken);
     return () => {
       active = false;
@@ -53,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const logout = () => {
+    void logoutRequest();
     removeToken();
     queryClient.clear();
     setAuthed(false);

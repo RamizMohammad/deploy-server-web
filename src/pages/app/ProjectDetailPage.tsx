@@ -5,6 +5,7 @@ import { ArrowLeft, Clock, ExternalLink, GitBranch, Loader2, RotateCcw, Server }
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
+import { useDelayedSkeleton } from "@/hooks/useDelayedSkeleton";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { deploymentLogsQueryOptions, deploymentsQueryOptions, projectQueryOptions, queryKeys } from "@/lib/query";
@@ -32,12 +33,18 @@ export default function ProjectDetailPage() {
     enabled: Boolean(id),
   });
 
-  const { data: allDeployments = [], isLoading: deploymentsLoading } = useQuery(deploymentsQueryOptions);
+  const { data: allDeployments, isLoading: deploymentsLoading } = useQuery(deploymentsQueryOptions);
+  const deploymentsList = allDeployments ?? [];
+  const waitingForInitialData = (projectLoading && !project) || (deploymentsLoading && !allDeployments);
+  const showSkeleton = useDelayedSkeleton(
+    waitingForInitialData,
+    Boolean(project && allDeployments)
+  );
 
   const deployments = useMemo(() => {
     if (!project) return [];
-    return allDeployments.filter((deployment) => deployment.project_name === project.repo_name);
-  }, [allDeployments, project]);
+    return deploymentsList.filter((deployment) => deployment.project_name === project.repo_name);
+  }, [deploymentsList, project]);
 
   useEffect(() => {
     if (deployments.length === 0) {
@@ -86,12 +93,16 @@ export default function ProjectDetailPage() {
 
   if (!id) return null;
 
-  if (projectLoading || deploymentsLoading) {
+  if (showSkeleton) {
     return (
       <PageFrame>
         <SkeletonPanel rows={5} />
       </PageFrame>
     );
+  }
+
+  if (waitingForInitialData) {
+    return <PageFrame />;
   }
 
   if (!project) {

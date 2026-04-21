@@ -1,6 +1,12 @@
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "https://server.api.launchly.systems").replace(/\/$/, "");
 const AUTH_TOKEN_KEY = "deployx_token";
 const LEGACY_AUTH_TOKEN_KEYS = ["token"];
+const AUTH_RELATED_CACHE_KEYS = [
+  "launchly:projects:v1",
+  "launchly:deployments:v1",
+  "launchly:github_repos:first_page:v1",
+  "launchly:github_repos:pages:v1",
+];
 
 function readStoredToken(): string | null {
   return localStorage.getItem(AUTH_TOKEN_KEY);
@@ -22,6 +28,12 @@ function clearLegacyTokens() {
   }
 }
 
+function clearPersistedAuthCaches() {
+  for (const key of AUTH_RELATED_CACHE_KEYS) {
+    localStorage.removeItem(key);
+  }
+}
+
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
   const headers: HeadersInit = {
@@ -32,21 +44,32 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
-  if (!res.ok) {
-    if (res.status === 401) {
-      removeToken();
-      window.location.href = "/";
+  try {
+    const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+    
+    if (!res.ok) {
+      const errorBody = await res.text();
+      console.error(`[API] Request failed: ${endpoint} ${res.status}`, errorBody);
+      
+      if (res.status === 401) {
+        console.log("[API] Received 401, clearing token and redirecting to /");
+        removeToken();
+        window.location.href = "/";
+        return undefined as T;
+      }
+      
+      throw new Error(errorBody || `API Error: ${res.status}`);
     }
-    const errorBody = await res.text();
-    throw new Error(errorBody || `API Error: ${res.status}`);
-  }
 
-  if (res.status === 204) {
-    return undefined as T;
-  }
+    if (res.status === 204) {
+      return undefined as T;
+    }
 
-  return res.json();
+    return res.json();
+  } catch (error) {
+    console.error(`[API] Network error or parsing error for ${endpoint}:`, error);
+    throw error;
+  }
 }
 
 export const api = {
@@ -82,6 +105,7 @@ export function setToken(token: string) {
 export function removeToken() {
   localStorage.removeItem(AUTH_TOKEN_KEY);
   clearLegacyTokens();
+  clearPersistedAuthCaches();
 }
 
 export function isAuthenticated(): boolean {
@@ -92,26 +116,87 @@ export function loginWithGithub() {
   window.location.replace(`${API_BASE}/auth/github/connect`);
 }
 
+export async function exchangeAuthCode(code: string): Promise<string> {
+  try {
+    console.log("[Auth] Exchanging auth code for JWT token...");
+    const response = await request<{ token: string }>("/auth/exchange", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    });
+    if (!response?.token) {
+      console.error("[Auth] Exchange response missing token field:", response);
+      throw new Error("Invalid exchange response: missing token");
+    }
+    console.log("[Auth] Successfully received JWT token from /auth/exchange");
+    return response.token;
+  } catch (error) {
+    console.error(
+      "[Auth] Code exchange failed:",
+      error instanceof Error ? error.message : String(error)
+    );
+    throw error;
+  }
+}
+
+export async function logoutRequest(): Promise<void> {
+  try {
+    await request("/auth/logout", { method: "POST" });
+  } catch {
+    // Best effort; local logout still clears the client state.
+  }
+}
+
 export async function verifySession(): Promise<boolean> {
   const token = getToken();
   if (!token) {
+    console.log("[Auth] No token found during session verification");
     return false;
   }
 
-  const res = await fetch(`${API_BASE}/auth/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-  if (res.ok) {
-    return true;
-  }
+    const res = await fetch(`${API_BASE}/auth/me`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      mode: "cors",
+      signal: controller.signal,
+    });
 
-  if (res.status === 401) {
-    removeToken();
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      console.log("[Auth] Session verification succeeded");
+      return true;
+    }
+
+    if (res.status === 401) {
+      console.log("[Auth] Token is invalid or expired, clearing storage");
+      removeToken();
+      return false;
+    }
+
+    if (res.status === 400 || res.status === 500) {
+      const errorData = await res.text();
+      console.error("[Auth] Session verification failed:", res.status, errorData);
+      return false;
+    }
+
+    console.warn("[Auth] Unexpected response from /auth/me:", res.status);
+    return false;
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      console.error("[Auth] Session verification timeout after 10s");
+    } else {
+      console.error("[Auth] Session verification error:", error instanceof Error ? error.message : String(error));
+    }
+    return false;
   }
-  return false;
 }
 
 export interface GithubRepo {

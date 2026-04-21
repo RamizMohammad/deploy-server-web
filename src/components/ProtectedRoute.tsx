@@ -4,6 +4,8 @@ import { Navigate } from "react-router-dom";
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isChecking } = useAuth();
 
+  console.log("[ProtectedRoute] Rendering - isChecking:", isChecking, "isAuthenticated:", isAuthenticated);
+
   if (isChecking) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -13,7 +15,10 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
+    console.log("[ProtectedRoute] Not authenticated, redirecting to /login");
     return <Navigate to="/login" replace />;
   }
+
+  console.log("[ProtectedRoute] Authenticated, rendering protected content");
   return <>{children}</>;
 }

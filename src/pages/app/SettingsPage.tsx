@@ -6,8 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Github, Mail, AlertTriangle, User, Bell, Trash2, LogOut, Pencil, Check } from "lucide-react";
 import { PageFrame, PageHeader, SurfaceCard } from "@/components/platform/PlatformUI";
-import { removeToken } from "@/lib/api";
-import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 function Section({
   title,
@@ -94,11 +93,10 @@ export default function SettingsPage() {
   const [emailNotif, setEmailNotif] = useState(true);
   const [deployNotif, setDeployNotif] = useState(true);
   const [marketingNotif, setMarketingNotif] = useState(false);
-  const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleSignOut = () => {
-    removeToken();
-    navigate("/login");
+    logout();
   };
 
   return (
