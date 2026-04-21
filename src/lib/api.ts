@@ -1,6 +1,12 @@
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "https://server.api.launchly.systems").replace(/\/$/, "");
 const AUTH_TOKEN_KEY = "deployx_token";
 const LEGACY_AUTH_TOKEN_KEYS = ["token"];
+const AUTH_RELATED_CACHE_KEYS = [
+  "launchly:projects:v1",
+  "launchly:deployments:v1",
+  "launchly:github_repos:first_page:v1",
+  "launchly:github_repos:pages:v1",
+];
 
 function readStoredToken(): string | null {
   return localStorage.getItem(AUTH_TOKEN_KEY);
@@ -18,6 +24,12 @@ function readLegacyToken(): string | null {
 
 function clearLegacyTokens() {
   for (const key of LEGACY_AUTH_TOKEN_KEYS) {
+    localStorage.removeItem(key);
+  }
+}
+
+function clearPersistedAuthCaches() {
+  for (const key of AUTH_RELATED_CACHE_KEYS) {
     localStorage.removeItem(key);
   }
 }
@@ -82,6 +94,7 @@ export function setToken(token: string) {
 export function removeToken() {
   localStorage.removeItem(AUTH_TOKEN_KEY);
   clearLegacyTokens();
+  clearPersistedAuthCaches();
 }
 
 export function isAuthenticated(): boolean {
