@@ -1,4 +1,4 @@
-import { isAuthenticated as checkAuth, getToken, removeToken, verifySession } from "@/lib/api";
+import { isAuthenticated as checkAuth, getToken, logoutRequest, removeToken, verifySession } from "@/lib/api";
 import { queryClient } from "@/lib/query";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
@@ -53,6 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   const logout = () => {
+    void logoutRequest();
     removeToken();
     queryClient.clear();
     setAuthed(false);

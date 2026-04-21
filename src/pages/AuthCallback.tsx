@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { setToken } from "@/lib/api";
+import { exchangeAuthCode, setToken } from "@/lib/api";
 import { queryClient } from "@/lib/query";
 import { Loader2 } from "lucide-react";
 
@@ -8,20 +8,31 @@ const AuthCallback = () => {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    const token = searchParams.get("token");
+    const code = searchParams.get("code");
+    let active = true;
 
-    if (token) {
-      // ✅ clear any cached data
-      queryClient.clear();
+    const run = async () => {
+      if (!code) {
+        window.location.replace("/");
+        return;
+      }
 
-      // ✅ store token
-      setToken(token);
+      try {
+        const token = await exchangeAuthCode(code);
+        if (!active) return;
 
-      // 🔥 CRITICAL FIX: replace entire history
-      window.location.replace("/app");
-    } else {
-      window.location.replace("/");
-    }
+        queryClient.clear();
+        setToken(token);
+        window.location.replace("/app");
+      } catch {
+        window.location.replace("/");
+      }
+    };
+
+    void run();
+    return () => {
+      active = false;
+    };
   }, [searchParams]);
 
   return (

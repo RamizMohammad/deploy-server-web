@@ -105,6 +105,22 @@ export function loginWithGithub() {
   window.location.replace(`${API_BASE}/auth/github/connect`);
 }
 
+export async function exchangeAuthCode(code: string): Promise<string> {
+  const response = await request<{ token: string }>("/auth/exchange", {
+    method: "POST",
+    body: JSON.stringify({ code }),
+  });
+  return response.token;
+}
+
+export async function logoutRequest(): Promise<void> {
+  try {
+    await request("/auth/logout", { method: "POST" });
+  } catch {
+    // Best effort; local logout still clears the client state.
+  }
+}
+
 export async function verifySession(): Promise<boolean> {
   const token = getToken();
   if (!token) {
