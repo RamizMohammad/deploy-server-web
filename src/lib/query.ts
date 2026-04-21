@@ -68,7 +68,7 @@ export const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
-      staleTime: 15 * 1000,
+      staleTime: FIVE_MINUTES_MS,
       gcTime: 10 * ONE_MINUTE_MS,
     },
   },
@@ -119,7 +119,7 @@ export const githubReposQueryOptions = queryOptions({
 export const projectsQueryOptions = queryOptions({
   queryKey: queryKeys.projects,
   queryFn: () => api.get<Project[]>("/projects"),
-  staleTime: 30 * 1000,
+  staleTime: FIVE_MINUTES_MS,
   initialData: () => readPersistedQueryData<Project[]>(PROJECTS_CACHE_KEY)?.data,
   initialDataUpdatedAt: () => readPersistedQueryData<Project[]>(PROJECTS_CACHE_KEY)?.updatedAt,
   placeholderData: keepPreviousData,
@@ -129,13 +129,13 @@ export const projectQueryOptions = (id: string) =>
   queryOptions({
     queryKey: queryKeys.project(id),
     queryFn: () => api.get<Project>(`/projects/${id}`),
-    staleTime: 30 * 1000,
+    staleTime: FIVE_MINUTES_MS,
   });
 
 export const deploymentsQueryOptions = queryOptions({
   queryKey: queryKeys.deployments,
   queryFn: () => api.get<Deployment[]>("/deployments"),
-  staleTime: 10 * 1000,
+  staleTime: FIVE_MINUTES_MS,
   initialData: () => readPersistedQueryData<Deployment[]>(DEPLOYMENTS_CACHE_KEY)?.data,
   initialDataUpdatedAt: () => readPersistedQueryData<Deployment[]>(DEPLOYMENTS_CACHE_KEY)?.updatedAt,
   placeholderData: keepPreviousData,
@@ -145,5 +145,5 @@ export const deploymentLogsQueryOptions = (deploymentId: string) =>
   queryOptions({
     queryKey: queryKeys.deploymentLogs(deploymentId),
     queryFn: () => api.get<DeploymentLogsResponse>(`/deployments/${deploymentId}/logs`),
-    staleTime: 5 * 1000,
+    staleTime: FIVE_MINUTES_MS,
   });

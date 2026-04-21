@@ -2,26 +2,35 @@
 import { motion } from "framer-motion";
 import { Clock, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useDelayedSkeleton } from "@/hooks/useDelayedSkeleton";
 import { deploymentLogsQueryOptions, deploymentsQueryOptions } from "@/lib/query";
 import { useQuery } from "@tanstack/react-query";
 import { DeploymentItem, EmptyState, LogViewer, PageFrame, PageHeader, SkeletonPanel, StatusBadge, SurfaceCard } from "@/components/platform/PlatformUI";
 
 export default function LogsPage() {
   const [activeDeploymentId, setActiveDeploymentId] = useState<string | null>(null);
-  const { data: deployments = [], isLoading } = useQuery(deploymentsQueryOptions);
+  const { data: deployments, isLoading } = useQuery(deploymentsQueryOptions);
+  const deploymentsList = deployments ?? [];
+  const waitingForDeployments = isLoading && !deployments;
+  const showDeploymentsSkeleton = useDelayedSkeleton(isLoading && !deployments, Boolean(deployments));
 
   useEffect(() => {
-    if (!activeDeploymentId && deployments.length > 0) {
-      setActiveDeploymentId(deployments[0].id);
+    if (!activeDeploymentId && deploymentsList.length > 0) {
+      setActiveDeploymentId(deploymentsList[0].id);
     }
-  }, [activeDeploymentId, deployments]);
+  }, [activeDeploymentId, deploymentsList]);
 
-  const activeDeployment = deployments.find((deployment) => deployment.id === activeDeploymentId) || null;
+  const activeDeployment = deploymentsList.find((deployment) => deployment.id === activeDeploymentId) || null;
 
   const { data: activeLogsResponse, isLoading: logsLoading, refetch } = useQuery({
     ...deploymentLogsQueryOptions(activeDeploymentId ?? ""),
     enabled: Boolean(activeDeploymentId),
   });
+  const waitingForLogs = Boolean(activeDeploymentId) && logsLoading && !activeLogsResponse;
+  const showLogsSkeleton = useDelayedSkeleton(
+    waitingForLogs,
+    Boolean(activeLogsResponse)
+  );
 
   return (
     <PageFrame>
@@ -31,9 +40,9 @@ export default function LogsPage() {
         description="Inspect build output across deployments with terminal-style streaming feedback and status context."
       />
 
-      {isLoading ? (
+      {showDeploymentsSkeleton ? (
         <SkeletonPanel rows={6} />
-      ) : deployments.length === 0 ? (
+      ) : waitingForDeployments ? null : deploymentsList.length === 0 ? (
         <EmptyState
           title="No deployment logs yet"
           description="Deploy a project and Launchly will stream build logs, warnings, and success events here."
@@ -49,7 +58,7 @@ export default function LogsPage() {
               <ScrollText className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="max-h-[620px] overflow-y-auto">
-              {deployments.map((deployment, index) => (
+              {deploymentsList.map((deployment, index) => (
                 <motion.div key={deployment.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.035 }}>
                   <div className={activeDeploymentId === deployment.id ? "bg-white/[0.035]" : ""}>
                     <DeploymentItem deployment={deployment} onClick={() => setActiveDeploymentId(deployment.id)} />
@@ -60,9 +69,9 @@ export default function LogsPage() {
           </SurfaceCard>
 
           <div className="space-y-4">
-            {logsLoading ? (
+            {showLogsSkeleton ? (
               <SkeletonPanel rows={5} />
-            ) : (
+            ) : waitingForLogs ? null : (
               <LogViewer
                 title={activeDeploymentId ? `deployment/${activeDeploymentId}` : "deployment/logs"}
                 logs={activeLogsResponse?.logs || ""}

@@ -5,6 +5,7 @@ import { ArrowLeft, CheckCircle2, Loader2, Search, Sparkles, Terminal } from "lu
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { api, type GithubRepo } from "@/lib/api";
+import { useDelayedSkeleton } from "@/hooks/useDelayedSkeleton";
 import { toast } from "sonner";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query";
@@ -63,6 +64,8 @@ export default function NewProjectPage() {
     staleTime: 5 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
   });
+  const waitingForRepos = isLoading && !data;
+  const showSkeleton = useDelayedSkeleton(isLoading && !data, Boolean(data));
 
   const repos = useMemo(() => {
     const flattened = data?.pages.flat() ?? [];
@@ -181,9 +184,9 @@ export default function NewProjectPage() {
         </SurfaceCard>
       )}
 
-      {isLoading ? (
+      {showSkeleton ? (
         <SkeletonPanel rows={6} />
-      ) : isError ? (
+      ) : waitingForRepos ? null : isError ? (
         <EmptyState
           title="Could not load repositories"
           description={(error as Error)?.message || "GitHub repositories could not be fetched right now."}

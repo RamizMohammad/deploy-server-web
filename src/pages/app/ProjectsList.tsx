@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, type GithubRepo } from "@/lib/api";
+import { useDelayedSkeleton } from "@/hooks/useDelayedSkeleton";
 import { cn } from "@/lib/utils";
 import { deploymentsQueryOptions, projectsQueryOptions, queryKeys } from "@/lib/query";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -56,8 +57,11 @@ export default function ProjectsList() {
   const queryClient = useQueryClient();
   const cachedFirstPage = useMemo(() => readCachedFirstPage(), []);
 
-  const { data: projects = [], isLoading: projectsLoading } = useQuery(projectsQueryOptions);
-  const { data: deployments = [] } = useQuery(deploymentsQueryOptions);
+  const { data: projects, isLoading: projectsLoading } = useQuery(projectsQueryOptions);
+  const { data: deployments } = useQuery(deploymentsQueryOptions);
+  const projectsList = projects ?? [];
+  const deploymentsList = deployments ?? [];
+  const waitingForProjects = projectsLoading && !projects;
 
   const {
     data: repoPages,
@@ -77,6 +81,9 @@ export default function ProjectsList() {
     staleTime: 5 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
   });
+  const waitingForRepos = reposLoading && !repoPages;
+  const showProjectsSkeleton = useDelayedSkeleton(projectsLoading && !projects, Boolean(projects));
+  const showReposSkeleton = useDelayedSkeleton(reposLoading && !repoPages, Boolean(repoPages));
 
   const repos = useMemo(() => {
     const flattened = repoPages?.pages.flat() ?? [];
@@ -113,15 +120,15 @@ export default function ProjectsList() {
 
   const latestStatusByProject = useMemo(() => {
     const map = new Map<string, string>();
-    for (const deployment of deployments) {
+    for (const deployment of deploymentsList) {
       if (!map.has(deployment.project_name)) {
         map.set(deployment.project_name, deployment.status);
       }
     }
     return map;
-  }, [deployments]);
+  }, [deploymentsList]);
 
-  const filteredProjects = projects.filter((project) =>
+  const filteredProjects = projectsList.filter((project) =>
     project.repo_name.toLowerCase().includes(search.toLowerCase()) ||
     project.repo_url.toLowerCase().includes(search.toLowerCase())
   );
@@ -183,9 +190,9 @@ export default function ProjectsList() {
             />
           </div>
 
-          {projectsLoading ? (
+          {showProjectsSkeleton ? (
             <SkeletonPanel rows={5} />
-          ) : filteredProjects.length > 0 ? (
+          ) : waitingForProjects ? null : filteredProjects.length > 0 ? (
             <div className="grid gap-4">
               {filteredProjects.map((project, index) => (
                 <motion.button
@@ -245,9 +252,9 @@ export default function ProjectsList() {
             </div>
           </div>
 
-          {reposLoading ? (
+          {showReposSkeleton ? (
             <SkeletonPanel rows={6} />
-          ) : reposError ? (
+          ) : waitingForRepos ? null : reposError ? (
             <EmptyState
               title="Could not load GitHub repositories"
               description="Launchly could not reach the GitHub repo endpoint. Your existing projects are still available."

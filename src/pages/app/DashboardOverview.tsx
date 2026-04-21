@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Activity, ArrowRight, CheckCircle2, FolderGit2, Globe2, Plus, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { useDelayedSkeleton } from "@/hooks/useDelayedSkeleton";
 import { deploymentsQueryOptions, projectsQueryOptions } from "@/lib/query";
 import {
   DeploymentItem,
@@ -18,27 +19,33 @@ import {
 
 export default function DashboardOverview() {
   const navigate = useNavigate();
-  const { data: projects = [], isLoading: projectsLoading } = useQuery(projectsQueryOptions);
-  const { data: deployments = [], isLoading: deploymentsLoading } = useQuery(deploymentsQueryOptions);
+  const { data: projects, isLoading: projectsLoading } = useQuery(projectsQueryOptions);
+  const { data: deployments, isLoading: deploymentsLoading } = useQuery(deploymentsQueryOptions);
+  const projectsList = projects ?? [];
+  const deploymentsList = deployments ?? [];
+  const waitingForInitialData = (projectsLoading && !projects) || (deploymentsLoading && !deployments);
+  const showSkeleton = useDelayedSkeleton(
+    waitingForInitialData,
+    Boolean(projects && deployments)
+  );
 
   const projectStatusMap = useMemo(() => {
     const map = new Map<string, string>();
-    for (const deployment of deployments) {
+    for (const deployment of deploymentsList) {
       if (!map.has(deployment.project_name)) {
         map.set(deployment.project_name, deployment.status === "success" ? "success" : deployment.status);
       }
     }
     return map;
-  }, [deployments]);
+  }, [deploymentsList]);
 
-  const totalDeployments = deployments.length;
-  const liveCount = deployments.filter((deployment) => deployment.status === "success").length;
-  const failedCount = deployments.filter((deployment) => deployment.status === "failed").length;
-  const recentDeployments = deployments.slice(0, 6);
-  const loading = projectsLoading || deploymentsLoading;
+  const totalDeployments = deploymentsList.length;
+  const liveCount = deploymentsList.filter((deployment) => deployment.status === "success").length;
+  const failedCount = deploymentsList.filter((deployment) => deployment.status === "failed").length;
+  const recentDeployments = deploymentsList.slice(0, 6);
 
   const stats = [
-    { label: "Projects", value: projects.length, icon: FolderGit2, trend: projects.length > 0 ? "+ Ready to deploy" : "Import your first repo" },
+    { label: "Projects", value: projectsList.length, icon: FolderGit2, trend: projectsList.length > 0 ? "+ Ready to deploy" : "Import your first repo" },
     { label: "Total Deploys", value: totalDeployments, icon: Activity, trend: totalDeployments > 0 ? "+ Pipeline active" : "No builds yet" },
     { label: "Live", value: liveCount, icon: CheckCircle2, trend: liveCount > 0 ? "+ Healthy releases" : "Awaiting live apps" },
     { label: "Failed", value: failedCount, icon: XCircle, trend: failedCount === 0 ? "All clear" : "Needs review" },
@@ -58,14 +65,14 @@ export default function DashboardOverview() {
         }
       />
 
-      {loading ? (
+      {showSkeleton ? (
         <div className="grid gap-5 lg:grid-cols-4">
           <SkeletonPanel rows={2} />
           <SkeletonPanel rows={2} />
           <SkeletonPanel rows={2} />
           <SkeletonPanel rows={2} />
         </div>
-      ) : (
+      ) : waitingForInitialData ? null : (
         <>
           <div className="mb-7 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
             {stats.map((stat, index) => (
@@ -92,9 +99,9 @@ export default function DashboardOverview() {
                 </Button>
               </div>
 
-              {projects.length > 0 ? (
+              {projectsList.length > 0 ? (
                 <div className="divide-y divide-zinc-900/80">
-                  {projects.slice(0, 5).map((project, index) => (
+                  {projectsList.slice(0, 5).map((project, index) => (
                     <motion.button
                       key={project.id}
                       initial={{ opacity: 0, y: 10 }}
