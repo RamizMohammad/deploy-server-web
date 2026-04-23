@@ -1,5 +1,5 @@
 import { isAuthenticated as checkAuth, getToken, logoutRequest, removeToken, verifySession } from "@/lib/api";
-import { queryClient } from "@/lib/query";
+import { queryClient, queryKeys } from "@/lib/query";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
 interface AuthContextType {
@@ -31,9 +31,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log("[AuthProvider] Verifying session with backend...");
       setChecking(true);
-      const valid = await verifySession();
-      console.log("[AuthProvider] Session verification result:", valid);
-      setAuthed(valid);
+      const user = await verifySession();
+      console.log("[AuthProvider] Session verification result:", Boolean(user));
+      if (user) {
+        queryClient.setQueryData(queryKeys.authMe, user);
+      }
+      setAuthed(Boolean(user));
       setChecking(false);
     } catch (error) {
       console.error("[AuthProvider] Unexpected error during refresh:", error);

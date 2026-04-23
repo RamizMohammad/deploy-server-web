@@ -25,13 +25,7 @@ import NotFound from "./pages/NotFound";
 
 const REPO_BATCH_SIZE = 10;
 const REPO_CACHE_KEY = "launchly:github_repos:first_page:v1";
-const REPO_PAGES_CACHE_KEY = "launchly:github_repos:pages:v1";
 const REPO_CACHE_TTL_MS = 5 * 60 * 1000;
-
-type RepoPagesCache = {
-  pages: GithubRepo[][];
-  updatedAt: number;
-};
 
 function persistFirstRepoBatch(repos: GithubRepo[]) {
   try {
@@ -39,32 +33,6 @@ function persistFirstRepoBatch(repos: GithubRepo[]) {
       REPO_CACHE_KEY,
       JSON.stringify({
         repos: repos.slice(0, REPO_BATCH_SIZE),
-        updatedAt: Date.now(),
-      })
-    );
-  } catch {
-    // no-op
-  }
-}
-
-function readRepoPagesCache(): RepoPagesCache | null {
-  try {
-    const raw = localStorage.getItem(REPO_PAGES_CACHE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as RepoPagesCache;
-    if (!Array.isArray(parsed.pages) || typeof parsed.updatedAt !== "number") return null;
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-function persistRepoPages(pages: GithubRepo[][]) {
-  try {
-    localStorage.setItem(
-      REPO_PAGES_CACHE_KEY,
-      JSON.stringify({
-        pages,
         updatedAt: Date.now(),
       })
     );
@@ -133,15 +101,9 @@ const App = () => {
     const reposKey = [...queryKeys.githubRepos, "infinite", REPO_BATCH_SIZE] as const;
     let cancelled = false;
 
-    const warmAllRepoPages = async () => {
-      let page = 1;
+    const warmFirstRepoPage = async () => {
       const cached = queryClient.getQueryData<InfiniteData<GithubRepo[]>>(reposKey);
-      const browserCache = readRepoPagesCache();
-      const pages = cached?.pages
-        ? [...cached.pages]
-        : browserCache?.pages
-          ? [...browserCache.pages]
-          : [];
+      const pages = cached?.pages ? [...cached.pages] : [];
 
       if (!cached && pages.length > 0) {
         queryClient.setQueryData(reposKey, {
@@ -150,51 +112,41 @@ const App = () => {
         });
       }
 
-      if (browserCache && pages.length > 0 && Date.now() - browserCache.updatedAt < REPO_CACHE_TTL_MS) {
+      const firstCachedPage = pages[0];
+      if (firstCachedPage && firstCachedPage.length > 0) {
         return;
       }
 
-      while (!cancelled) {
-        let batch: GithubRepo[] = [];
+      const cachedFirstBatchRaw = localStorage.getItem(REPO_CACHE_KEY);
+      if (cachedFirstBatchRaw) {
         try {
-          batch = await api.get<GithubRepo[]>(
-            `/auth/github/repos?page=${page}&per_page=${REPO_BATCH_SIZE}`
-          );
+          const parsed = JSON.parse(cachedFirstBatchRaw) as { repos?: GithubRepo[]; updatedAt?: number };
+          if (Array.isArray(parsed.repos) && parsed.repos.length > 0 && typeof parsed.updatedAt === "number" && Date.now() - parsed.updatedAt < REPO_CACHE_TTL_MS) {
+            queryClient.setQueryData(reposKey, {
+              pageParams: [1],
+              pages: [parsed.repos],
+            });
+            return;
+          }
         } catch {
-          break;
+          // no-op
         }
+      }
+
+      try {
+        const batch = await api.get<GithubRepo[]>(`/auth/github/repos?page=1&per_page=${REPO_BATCH_SIZE}`);
         if (cancelled) return;
-
-        if (page === 1) {
-          persistFirstRepoBatch(batch);
-        }
-
-        if (batch.length === 0) {
-          break;
-        }
-
-        if (pages.length < page) {
-          pages.push(batch);
-        } else {
-          pages[page - 1] = batch;
-        }
-
-        persistRepoPages(pages);
-
+        persistFirstRepoBatch(batch);
         queryClient.setQueryData(reposKey, {
-          pageParams: pages.map((_, index) => index + 1),
-          pages,
+          pageParams: [1],
+          pages: [batch],
         });
-
-        if (batch.length < REPO_BATCH_SIZE) {
-          break;
-        }
-
-        page += 1;
+      } catch {
+        // Repo import should stay lazy if warm-up fails.
       }
     };
 
-    void warmAllRepoPages();
+    void warmFirstRepoPage();
     return () => {
       cancelled = true;
     };
