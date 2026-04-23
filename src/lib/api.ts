@@ -146,11 +146,11 @@ export async function logoutRequest(): Promise<void> {
   }
 }
 
-export async function verifySession(): Promise<boolean> {
+export async function verifySession(): Promise<AuthUser | null> {
   const token = getToken();
   if (!token) {
     console.log("[Auth] No token found during session verification");
-    return false;
+    return null;
   }
 
   try {
@@ -172,30 +172,30 @@ export async function verifySession(): Promise<boolean> {
 
     if (res.ok) {
       console.log("[Auth] Session verification succeeded");
-      return true;
+      return (await res.json()) as AuthUser;
     }
 
     if (res.status === 401) {
       console.log("[Auth] Token is invalid or expired, clearing storage");
       removeToken();
-      return false;
+      return null;
     }
 
     if (res.status === 400 || res.status === 500) {
       const errorData = await res.text();
       console.error("[Auth] Session verification failed:", res.status, errorData);
-      return false;
+      return null;
     }
 
     console.warn("[Auth] Unexpected response from /auth/me:", res.status);
-    return false;
+    return null;
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       console.error("[Auth] Session verification timeout after 10s");
     } else {
       console.error("[Auth] Session verification error:", error instanceof Error ? error.message : String(error));
     }
-    return false;
+    return null;
   }
 }
 
