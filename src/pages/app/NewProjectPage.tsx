@@ -157,10 +157,10 @@ export default function NewProjectPage() {
       <PageHeader
         eyebrow="Import workflow"
         title="Import Project"
-        description="Choose a GitHub repository. Launchly keeps fetching repo batches in the background, so large accounts become usable immediately."
+        description="Choose a GitHub repository and start a production deployment."
       />
 
-      <div className="mb-6 grid gap-5 lg:grid-cols-[1fr_360px]">
+      <div className="mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -170,15 +170,6 @@ export default function NewProjectPage() {
             className="h-12 border-zinc-800 bg-zinc-950/70 pl-10"
           />
         </div>
-        <SurfaceCard className="px-4 py-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">GitHub sync</span>
-            <span className="text-foreground">{repos.length} repos cached</span>
-          </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-900">
-            <div className="h-full rounded-full bg-[linear-gradient(90deg,#0ea5e9,#8b5cf6)] transition-all" style={{ width: hasNextPage || isFetchingNextPage ? "70%" : "100%" }} />
-          </div>
-        </SurfaceCard>
       </div>
 
       <div className="mb-6">
@@ -245,13 +236,12 @@ export default function NewProjectPage() {
       )}
 
       {isFetchingNextPage && (
-        <SurfaceCard className="mt-5 p-4">
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            Fetching another batch of 10 repositories...
-          </div>
-        </SurfaceCard>
+        <div className="mt-5 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          Loading
+        </div>
       )}
+
     </PageFrame>
   );
 }
