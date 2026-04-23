@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Deployment, GithubRepo } from "@/lib/api";
+import type { RepoOwnershipFilter, RepoVisibilityFilter } from "@/lib/github-repos";
 
 const pageMotion = {
   initial: { opacity: 0, y: 14 },
@@ -215,20 +216,24 @@ export function RepoCard({
   repo,
   onImport,
   actionLabel = "Import",
+  ownership = "owner",
 }: {
   repo: GithubRepo;
   onImport: () => void;
   actionLabel?: string;
+  ownership?: "owner" | "collaborator";
 }) {
   return (
     <SurfaceCard interactive className="p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <GitBranch className="h-4 w-4 text-primary" />
             <p className="truncate text-sm font-semibold text-foreground">{repo.name}</p>
-            {repo.private ? <Lock className="h-3.5 w-3.5 text-muted-foreground" /> : <Globe className="h-3.5 w-3.5 text-muted-foreground" />}
+            <RepoVisibilityBadge isPrivate={repo.private} />
+            <RepoOwnershipBadge ownership={ownership} />
           </div>
+          <p className="mt-2 truncate text-xs text-muted-foreground">{repo.full_name}</p>
           <p className="mt-3 line-clamp-2 min-h-[2.5rem] text-sm leading-5 text-muted-foreground">{repo.description || "No repository description."}</p>
         </div>
         <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
@@ -243,6 +248,122 @@ export function RepoCard({
         </Button>
       </div>
     </SurfaceCard>
+  );
+}
+
+export function RepoVisibilityBadge({ isPrivate }: { isPrivate: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em]",
+        isPrivate
+          ? "border-amber-500/20 bg-amber-500/10 text-amber-200"
+          : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+      )}
+    >
+      {isPrivate ? <Lock className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
+      {isPrivate ? "Private" : "Public"}
+    </span>
+  );
+}
+
+export function RepoOwnershipBadge({ ownership }: { ownership: "owner" | "collaborator" }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.08em]",
+        ownership === "owner"
+          ? "border-sky-500/20 bg-sky-500/10 text-sky-300"
+          : "border-violet-500/20 bg-violet-500/10 text-violet-300"
+      )}
+    >
+      {ownership === "owner" ? "Owner" : "Collaborator"}
+    </span>
+  );
+}
+
+export function RepoFilterTabs({
+  ownership,
+  visibility,
+  counts,
+  onOwnershipChange,
+  onVisibilityChange,
+}: {
+  ownership: RepoOwnershipFilter;
+  visibility: RepoVisibilityFilter;
+  counts: {
+    all: number;
+    owned: number;
+    collaborations: number;
+    ownedPublic: number;
+    ownedPrivate: number;
+    collaborationPublic: number;
+    collaborationPrivate: number;
+  };
+  onOwnershipChange: (value: RepoOwnershipFilter) => void;
+  onVisibilityChange: (value: RepoVisibilityFilter) => void;
+}) {
+  const ownershipOptions: Array<{ value: RepoOwnershipFilter; label: string; count: number }> = [
+    { value: "all", label: "All", count: counts.all },
+    { value: "owned", label: "Owned", count: counts.owned },
+    { value: "collaborations", label: "Collaborations", count: counts.collaborations },
+  ];
+
+  const visibilityOptions: Array<{ value: RepoVisibilityFilter; label: string; count: number }> =
+    ownership === "owned"
+      ? [
+          { value: "all", label: "All visibility", count: counts.owned },
+          { value: "public", label: "Public", count: counts.ownedPublic },
+          { value: "private", label: "Private", count: counts.ownedPrivate },
+        ]
+      : ownership === "collaborations"
+        ? [
+            { value: "all", label: "All visibility", count: counts.collaborations },
+            { value: "public", label: "Public", count: counts.collaborationPublic },
+            { value: "private", label: "Private", count: counts.collaborationPrivate },
+          ]
+        : [
+            { value: "all", label: "All visibility", count: counts.all },
+            { value: "public", label: "Public", count: counts.ownedPublic + counts.collaborationPublic },
+            { value: "private", label: "Private", count: counts.ownedPrivate + counts.collaborationPrivate },
+          ];
+
+  return (
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="inline-flex h-11 w-full max-w-xl items-center rounded-lg border border-zinc-800/80 bg-zinc-950/70 p-1">
+        {ownershipOptions.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onOwnershipChange(option.value)}
+            className={cn(
+              "flex min-w-0 flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm transition",
+              ownership === option.value ? "bg-white/10 text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <span className="truncate">{option.label}</span>
+            <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] text-muted-foreground">{option.count}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="inline-flex h-10 items-center rounded-lg border border-zinc-800/80 bg-zinc-950/70 p-1">
+        {visibilityOptions.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onVisibilityChange(option.value)}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition",
+              visibility === option.value ? "bg-white/10 text-foreground" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <span>{option.label}</span>
+            <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] text-muted-foreground">{option.count}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 

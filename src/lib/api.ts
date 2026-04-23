@@ -209,6 +209,22 @@ export interface GithubRepo {
   html_url: string;
   private: boolean;
   default_branch: string;
+  owner?: {
+    login?: string;
+  };
+  permissions?: {
+    admin?: boolean;
+    maintain?: boolean;
+    push?: boolean;
+    triage?: boolean;
+    pull?: boolean;
+  };
+}
+
+export interface AuthUser {
+  id: string;
+  email: string;
+  github_username: string | null;
 }
 
 export interface Deployment {
