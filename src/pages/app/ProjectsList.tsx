@@ -274,9 +274,6 @@ export default function ProjectsList() {
                 className="h-11 border-zinc-800 bg-zinc-950/70 pl-9"
               />
             </div>
-            <div className="rounded-full border border-zinc-800 bg-zinc-950/70 px-3 py-1.5 text-xs text-muted-foreground">
-              {repos.length} repos cached{hasNextPage || isFetchingNextPage ? " and warming" : ""}
-            </div>
           </div>
 
           <RepoFilterTabs
@@ -327,13 +324,12 @@ export default function ProjectsList() {
           )}
 
           {isFetchingNextPage && (
-            <SurfaceCard className="p-4">
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                Fetching the next batch of 10 repositories...
-              </div>
-            </SurfaceCard>
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              Loading
+            </div>
           )}
+
         </TabsContent>
       </Tabs>
 
