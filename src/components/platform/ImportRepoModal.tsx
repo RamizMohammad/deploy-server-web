@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { api, type GithubRepo } from "@/lib/api";
+import { createRepoDeployPayload } from "@/lib/deploy";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query";
 import { toast } from "sonner";
@@ -72,10 +73,7 @@ export function ImportRepoModal({
     setDeploying(true);
     setStep(STEPS.length - 1);
     try {
-      await api.post("/deploy", {
-        repo_name: repo.name,
-        branch: repo.default_branch || "main",
-      });
+      await api.post("/deploy", createRepoDeployPayload(repo));
       setSuccess(true);
       toast.success(`Deployment started for ${repo.name}`);
       await Promise.all([

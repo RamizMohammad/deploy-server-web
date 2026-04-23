@@ -1,12 +1,15 @@
 ﻿import { useState } from "react";
 import { motion } from "framer-motion";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Github, Mail, AlertTriangle, User, Bell, Trash2, LogOut, Pencil, Check } from "lucide-react";
+import { Github, Mail, AlertTriangle, User, Bell, Trash2, LogOut, RefreshCcw } from "lucide-react";
 import { PageFrame, PageHeader, SurfaceCard } from "@/components/platform/PlatformUI";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { authMeQueryOptions } from "@/lib/query";
+import { loginWithGithub } from "@/lib/api";
 
 function Section({
   title,
@@ -38,53 +41,21 @@ function Section({
 
 function InlineField({
   label,
-  defaultValue,
+  value,
   icon,
 }: {
   label: string;
-  defaultValue: string;
+  value: string;
   icon: React.ReactNode;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(defaultValue);
-  const [draft, setDraft] = useState(defaultValue);
-
-  const save = () => {
-    setValue(draft);
-    setEditing(false);
-  };
-
   return (
     <div>
       <Label className="mb-1.5 flex items-center gap-1.5 text-xs uppercase tracking-[0.12em] text-muted-foreground">
         {icon} {label}
       </Label>
-      {editing ? (
-        <div className="flex gap-2">
-          <Input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            className="h-10 border-zinc-800 bg-zinc-950 font-mono text-sm"
-            autoFocus
-          />
-          <Button size="icon" onClick={save} className="h-10 w-10 bg-foreground text-background hover:bg-foreground/90">
-            <Check className="h-4 w-4" />
-          </Button>
-        </div>
-      ) : (
-        <div className="group flex items-center justify-between rounded-lg border border-zinc-800/70 bg-zinc-950/60 px-3 py-2.5">
-          <span className="font-mono text-sm text-foreground">{value}</span>
-          <button
-            onClick={() => {
-              setDraft(value);
-              setEditing(true);
-            }}
-            className="text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:text-foreground"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      )}
+      <div className="rounded-lg border border-zinc-800/70 bg-zinc-950/60 px-3 py-2.5">
+        <span className="font-mono text-sm text-foreground">{value}</span>
+      </div>
     </div>
   );
 }
@@ -94,6 +65,11 @@ export default function SettingsPage() {
   const [deployNotif, setDeployNotif] = useState(true);
   const [marketingNotif, setMarketingNotif] = useState(false);
   const { logout } = useAuth();
+  const { data: user, isLoading: userLoading } = useQuery(authMeQueryOptions);
+  const username = user?.github_username || (userLoading ? "Loading..." : "Not connected");
+  const email = user?.email || (userLoading ? "Loading..." : "No email available");
+  const profileInitial = (user?.github_username || user?.email || "L").slice(0, 1).toUpperCase();
+  const githubConnected = Boolean(user?.github_username);
 
   const handleSignOut = () => {
     logout();
@@ -112,16 +88,16 @@ export default function SettingsPage() {
           <div className="space-y-5">
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-[linear-gradient(135deg,hsl(199,89%,48%),hsl(265,80%,60%))] text-base font-bold text-background shadow-[0_0_30px_rgba(14,165,233,0.3)]">
-                D
+                {profileInitial}
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Developer</p>
+                <p className="text-sm font-semibold text-foreground">{username}</p>
                 <p className="text-xs text-muted-foreground">Free plan • Workspace owner</p>
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <InlineField label="Display Name" defaultValue="Developer" icon={<User className="h-3 w-3" />} />
-              <InlineField label="Email" defaultValue="dev@launchly.app" icon={<Mail className="h-3 w-3" />} />
+              <InlineField label="Username" value={username} icon={<User className="h-3 w-3" />} />
+              <InlineField label="Email" value={email} icon={<Mail className="h-3 w-3" />} />
             </div>
           </div>
         </Section>
@@ -134,13 +110,21 @@ export default function SettingsPage() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground">GitHub</p>
-                <p className="text-xs text-muted-foreground">Connected via OAuth</p>
+                <p className="text-xs text-muted-foreground">
+                  {githubConnected ? `Connected as ${user?.github_username}` : "Reconnect GitHub to import repositories"}
+                </p>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-300">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-status-pulse" />
-              Connected
-            </span>
+            {githubConnected ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-300">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-status-pulse" />
+                Connected
+              </span>
+            ) : (
+              <Button size="sm" variant="outline" onClick={loginWithGithub} className="gap-2 border-zinc-800 bg-zinc-950 hover:bg-zinc-900">
+                <RefreshCcw className="h-3.5 w-3.5" /> Connect
+              </Button>
+            )}
           </div>
         </Section>
 
@@ -189,11 +173,19 @@ export default function SettingsPage() {
                 Permanently delete your workspace, projects, and deployment history. This cannot be undone.
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
-                <Button variant="outline" className="gap-2 border-red-500/40 bg-red-500/5 text-red-300 hover:bg-red-500/10 hover:text-red-200">
+                <Button
+                  variant="outline"
+                  onClick={() => toast.info("Workspace deletion is not available until the account API is connected.")}
+                  className="gap-2 border-red-500/40 bg-red-500/5 text-red-300 hover:bg-red-500/10 hover:text-red-200"
+                >
                   <Trash2 className="h-4 w-4" /> Delete workspace
                 </Button>
-                <Button variant="ghost" className="text-muted-foreground hover:text-red-300">
-                  Reset GitHub connection
+                <Button
+                  variant="ghost"
+                  onClick={loginWithGithub}
+                  className="text-muted-foreground hover:text-red-300"
+                >
+                  Reconnect GitHub
                 </Button>
               </div>
             </div>

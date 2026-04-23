@@ -23,6 +23,7 @@ import {
   type RepoOwnershipFilter,
   type RepoVisibilityFilter,
 } from "@/lib/github-repos";
+import { createRepoDeployPayload } from "@/lib/deploy";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -64,8 +65,8 @@ function writeCachedFirstPage(repos: GithubRepo[]) {
 export default function ProjectsList() {
   const [search, setSearch] = useState("");
   const [repoSearch, setRepoSearch] = useState("");
-  const [repoOwnership, setRepoOwnership] = useState<RepoOwnershipFilter>("all");
-  const [repoVisibility, setRepoVisibility] = useState<RepoVisibilityFilter>("all");
+  const [repoOwnership, setRepoOwnership] = useState<RepoOwnershipFilter>("owned");
+  const [repoVisibility, setRepoVisibility] = useState<RepoVisibilityFilter>("public");
   const [selectedRepo, setSelectedRepo] = useState<GithubRepo | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [deployingRepoId, setDeployingRepoId] = useState<number | null>(null);
@@ -160,19 +161,15 @@ export default function ProjectsList() {
 
   const resetRepoFilters = () => {
     setRepoSearch("");
-    setRepoOwnership("all");
-    setRepoVisibility("all");
+    setRepoOwnership("owned");
+    setRepoVisibility("public");
   };
 
   const deployRepo = async (repo: GithubRepo) => {
     try {
       setDeployingRepoId(repo.id);
       setCurrentStep(4);
-      await api.post("/deploy", {
-        repo_name: repo.name,
-        repo_full_name: repo.full_name,
-        branch: repo.default_branch || "main",
-      });
+      await api.post("/deploy", createRepoDeployPayload(repo));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.projects }),
         queryClient.invalidateQueries({ queryKey: queryKeys.deployments }),

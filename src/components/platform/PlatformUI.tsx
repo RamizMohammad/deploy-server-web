@@ -292,7 +292,6 @@ export function RepoFilterTabs({
   ownership: RepoOwnershipFilter;
   visibility: RepoVisibilityFilter;
   counts: {
-    all: number;
     owned: number;
     collaborations: number;
     ownedPublic: number;
@@ -304,7 +303,6 @@ export function RepoFilterTabs({
   onVisibilityChange: (value: RepoVisibilityFilter) => void;
 }) {
   const ownershipOptions: Array<{ value: RepoOwnershipFilter; label: string; count: number }> = [
-    { value: "all", label: "All", count: counts.all },
     { value: "owned", label: "Owned", count: counts.owned },
     { value: "collaborations", label: "Collaborations", count: counts.collaborations },
   ];
@@ -312,21 +310,13 @@ export function RepoFilterTabs({
   const visibilityOptions: Array<{ value: RepoVisibilityFilter; label: string; count: number }> =
     ownership === "owned"
       ? [
-          { value: "all", label: "All visibility", count: counts.owned },
           { value: "public", label: "Public", count: counts.ownedPublic },
           { value: "private", label: "Private", count: counts.ownedPrivate },
         ]
-      : ownership === "collaborations"
-        ? [
-            { value: "all", label: "All visibility", count: counts.collaborations },
-            { value: "public", label: "Public", count: counts.collaborationPublic },
-            { value: "private", label: "Private", count: counts.collaborationPrivate },
-          ]
-        : [
-            { value: "all", label: "All visibility", count: counts.all },
-            { value: "public", label: "Public", count: counts.ownedPublic + counts.collaborationPublic },
-            { value: "private", label: "Private", count: counts.ownedPrivate + counts.collaborationPrivate },
-          ];
+      : [
+          { value: "public", label: "Public", count: counts.collaborationPublic },
+          { value: "private", label: "Private", count: counts.collaborationPrivate },
+        ];
 
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
