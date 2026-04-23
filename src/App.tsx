@@ -3,8 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { api, type GithubRepo } from "@/lib/api";
-import { queryClient, queryKeys } from "@/lib/query";
-import { type InfiniteData } from "@tanstack/react-query";
+import { projectsQueryOptions, queryClient, queryKeys } from "@/lib/query";
+import { type InfiniteData, useQuery } from "@tanstack/react-query";
 import { Rocket } from "lucide-react";
 import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
@@ -108,6 +108,20 @@ const EntryRoute = () => {
   );
 };
 
+const AppIndexRoute = () => {
+  const { data: projects, isLoading, isError } = useQuery(projectsQueryOptions);
+
+  if (isLoading && !projects) {
+    return <AuthCheckingScreen />;
+  }
+
+  if (!isError && projects && projects.length === 0) {
+    return <Navigate to="/app/projects" replace />;
+  }
+
+  return <DashboardOverview />;
+};
+
 const App = () => {
   const { isAuthenticated } = useAuth();
 
@@ -196,7 +210,7 @@ const App = () => {
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-            <Route index element={<DashboardOverview />} />
+            <Route index element={<AppIndexRoute />} />
             <Route path="projects" element={<ProjectsList />} />
             <Route path="projects/:id" element={<ProjectDetailPage />} />
             <Route path="new" element={<NewProjectPage />} />

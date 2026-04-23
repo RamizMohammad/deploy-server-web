@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/command";
 import { FolderGit2, Rocket, Globe, Settings, LayoutDashboard, Play } from "lucide-react";
 import { api, type Project } from "@/lib/api";
+import { createProjectDeployPayload } from "@/lib/deploy";
 import { toast } from "sonner";
 
 interface CommandPaletteProps {
@@ -57,10 +58,7 @@ export const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
 
   const triggerDeploy = async (project: Project) => {
     try {
-      await api.post("/deploy", {
-        repo_name: project.repo_name,
-        branch: project.branch || "main",
-      });
+      await api.post("/deploy", createProjectDeployPayload(project));
       toast.success(`Deployment started for ${project.repo_name}`);
       run(() => navigate(`/app/projects/${project.id}`));
     } catch {

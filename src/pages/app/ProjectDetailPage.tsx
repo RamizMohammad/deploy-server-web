@@ -5,6 +5,7 @@ import { ArrowLeft, Clock, ExternalLink, GitBranch, Loader2, RotateCcw, Server }
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api } from "@/lib/api";
+import { createProjectDeployPayload } from "@/lib/deploy";
 import { useDelayedSkeleton } from "@/hooks/useDelayedSkeleton";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -74,10 +75,7 @@ export default function ProjectDetailPage() {
     if (!project) return;
     setDeploying(true);
     try {
-      await api.post("/deploy", {
-        repo_name: project.repo_name,
-        branch: project.branch || "main",
-      });
+      await api.post("/deploy", createProjectDeployPayload(project));
       toast.success("Redeployment started");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.projects }),

@@ -1,6 +1,7 @@
 ﻿import { Globe, Info, LockKeyhole, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState, PageFrame, PageHeader, SurfaceCard } from "@/components/platform/PlatformUI";
+import { toast } from "sonner";
 
 export default function DomainsPage() {
   return (
@@ -15,7 +16,7 @@ export default function DomainsPage() {
         <EmptyState
           title="Domain management is coming next"
           description="Your backend currently exposes projects, deployments, logs, and GitHub repo APIs. This page is ready for the domain API when it lands."
-          action={<Button variant="outline">Read setup requirements</Button>}
+          action={<Button variant="outline" onClick={() => toast.info("Domain setup requirements will be available when the domain API is connected.")}>Read setup requirements</Button>}
         />
 
         <div className="space-y-4">

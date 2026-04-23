@@ -17,6 +17,7 @@ import {
   type RepoOwnershipFilter,
   type RepoVisibilityFilter,
 } from "@/lib/github-repos";
+import { createRepoDeployPayload } from "@/lib/deploy";
 import { cn } from "@/lib/utils";
 import { EmptyState, PageFrame, PageHeader, RepoCard, RepoFilterTabs, SkeletonPanel, Stepper, SurfaceCard } from "@/components/platform/PlatformUI";
 
@@ -48,8 +49,8 @@ export default function NewProjectPage() {
   const navigate = useNavigate();
   const [deployingRepoId, setDeployingRepoId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
-  const [repoOwnership, setRepoOwnership] = useState<RepoOwnershipFilter>("all");
-  const [repoVisibility, setRepoVisibility] = useState<RepoVisibilityFilter>("all");
+  const [repoOwnership, setRepoOwnership] = useState<RepoOwnershipFilter>("owned");
+  const [repoVisibility, setRepoVisibility] = useState<RepoVisibilityFilter>("public");
   const [selectedRepo, setSelectedRepo] = useState<GithubRepo | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const queryClient = useQueryClient();
@@ -121,8 +122,8 @@ export default function NewProjectPage() {
 
   const resetRepoFilters = () => {
     setSearch("");
-    setRepoOwnership("all");
-    setRepoVisibility("all");
+    setRepoOwnership("owned");
+    setRepoVisibility("public");
   };
 
   const deployRepo = async (repo: GithubRepo) => {
@@ -130,11 +131,7 @@ export default function NewProjectPage() {
       setSelectedRepo(repo);
       setDeployingRepoId(repo.id);
       setCurrentStep(4);
-      await api.post("/deploy", {
-        repo_name: repo.name,
-        repo_full_name: repo.full_name,
-        branch: repo.default_branch || "main",
-      });
+      await api.post("/deploy", createRepoDeployPayload(repo));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.projects }),
         queryClient.invalidateQueries({ queryKey: queryKeys.deployments }),
