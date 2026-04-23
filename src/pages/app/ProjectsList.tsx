@@ -9,7 +9,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, type GithubRepo } from "@/lib/api";
 import { useDelayedSkeleton } from "@/hooks/useDelayedSkeleton";
 import { cn } from "@/lib/utils";
-import { deploymentsQueryOptions, projectsQueryOptions, queryKeys } from "@/lib/query";
+import {
+  authMeQueryOptions,
+  deploymentsQueryOptions,
+  projectsQueryOptions,
+  queryKeys,
+} from "@/lib/query";
+import {
+  filterRepos,
+  getRepoCounts,
+  getRepoEmptyStateCopy,
+  isOwnedRepo,
+  type RepoOwnershipFilter,
+  type RepoVisibilityFilter,
+} from "@/lib/github-repos";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -17,6 +30,7 @@ import {
   PageFrame,
   PageHeader,
   RepoCard,
+  RepoFilterTabs,
   SkeletonPanel,
   StatusBadge,
   Stepper,
@@ -50,6 +64,8 @@ function writeCachedFirstPage(repos: GithubRepo[]) {
 export default function ProjectsList() {
   const [search, setSearch] = useState("");
   const [repoSearch, setRepoSearch] = useState("");
+  const [repoOwnership, setRepoOwnership] = useState<RepoOwnershipFilter>("all");
+  const [repoVisibility, setRepoVisibility] = useState<RepoVisibilityFilter>("all");
   const [selectedRepo, setSelectedRepo] = useState<GithubRepo | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [deployingRepoId, setDeployingRepoId] = useState<number | null>(null);
@@ -57,6 +73,7 @@ export default function ProjectsList() {
   const queryClient = useQueryClient();
   const cachedFirstPage = useMemo(() => readCachedFirstPage(), []);
 
+  const { data: currentUser } = useQuery(authMeQueryOptions);
   const { data: projects, isLoading: projectsLoading } = useQuery(projectsQueryOptions);
   const { data: deployments } = useQuery(deploymentsQueryOptions);
   const projectsList = projects ?? [];
@@ -133,10 +150,19 @@ export default function ProjectsList() {
     project.repo_url.toLowerCase().includes(search.toLowerCase())
   );
 
-  const filteredRepos = repos.filter((repo) =>
-    repo.name.toLowerCase().includes(repoSearch.toLowerCase()) ||
-    (repo.description || "").toLowerCase().includes(repoSearch.toLowerCase())
+  const currentUsername = currentUser?.github_username;
+  const repoCounts = useMemo(() => getRepoCounts(repos, currentUsername), [repos, currentUsername]);
+  const filteredRepos = useMemo(
+    () => filterRepos(repos, repoSearch, repoOwnership, repoVisibility, currentUsername),
+    [repos, repoSearch, repoOwnership, repoVisibility, currentUsername]
   );
+  const repoEmptyState = getRepoEmptyStateCopy(repoOwnership, repoVisibility, repoSearch);
+
+  const resetRepoFilters = () => {
+    setRepoSearch("");
+    setRepoOwnership("all");
+    setRepoVisibility("all");
+  };
 
   const deployRepo = async (repo: GithubRepo) => {
     try {
@@ -144,6 +170,7 @@ export default function ProjectsList() {
       setCurrentStep(4);
       await api.post("/deploy", {
         repo_name: repo.name,
+        repo_full_name: repo.full_name,
         branch: repo.default_branch || "main",
       });
       await Promise.all([
@@ -252,6 +279,14 @@ export default function ProjectsList() {
             </div>
           </div>
 
+          <RepoFilterTabs
+            ownership={repoOwnership}
+            visibility={repoVisibility}
+            counts={repoCounts}
+            onOwnershipChange={setRepoOwnership}
+            onVisibilityChange={setRepoVisibility}
+          />
+
           {showReposSkeleton ? (
             <SkeletonPanel rows={6} />
           ) : waitingForRepos ? null : reposError ? (
@@ -269,9 +304,14 @@ export default function ProjectsList() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(index * 0.03, 0.36) }}
                 >
-                  <RepoCard repo={repo} onImport={() => setSelectedRepo(repo)} actionLabel="Configure" />
+                  <RepoCard
+                    repo={repo}
+                    ownership={isOwnedRepo(repo, currentUsername) ? "owner" : "collaborator"}
+                    onImport={() => setSelectedRepo(repo)}
+                    actionLabel="Configure"
+                  />
                   <div className="mt-2 flex items-center gap-3 px-1 text-[11px] text-muted-foreground">
-                    <span>{repo.private ? "Private" : "Public"}</span>
+                    <span>{isOwnedRepo(repo, currentUsername) ? "Your repository" : "Collaboration"}</span>
                     <span className="h-1 w-1 rounded-full bg-zinc-700" />
                     <span>Updated {new Date(repo.updated_at).toLocaleDateString()}</span>
                   </div>
@@ -280,9 +320,9 @@ export default function ProjectsList() {
             </div>
           ) : (
             <EmptyState
-              title="No repositories found"
-              description="Try a different search or reconnect GitHub if this account has no visible repositories."
-              action={<Button onClick={() => setRepoSearch("")} variant="outline">Clear search</Button>}
+              title={repoEmptyState.title}
+              description={repoEmptyState.description}
+              action={<Button onClick={resetRepoFilters} variant="outline">{repoEmptyState.actionLabel}</Button>}
             />
           )}
 

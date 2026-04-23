@@ -1,5 +1,5 @@
 import { QueryClient, keepPreviousData, queryOptions } from "@tanstack/react-query";
-import { api, type Deployment, type DeploymentLogsResponse, type GithubRepo, type Project } from "@/lib/api";
+import { api, type AuthUser, type Deployment, type DeploymentLogsResponse, type GithubRepo, type Project } from "@/lib/api";
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
 const ONE_MINUTE_MS = 60 * 1000;
@@ -75,12 +75,19 @@ export const queryClient = new QueryClient({
 });
 
 export const queryKeys = {
+  authMe: ["auth", "me"] as const,
   githubRepos: ["github", "repos"] as const,
   projects: ["projects"] as const,
   project: (id: string) => ["projects", id] as const,
   deployments: ["deployments"] as const,
   deploymentLogs: (deploymentId: string) => ["deployments", deploymentId, "logs"] as const,
 };
+
+export const authMeQueryOptions = queryOptions({
+  queryKey: queryKeys.authMe,
+  queryFn: () => api.get<AuthUser>("/auth/me"),
+  staleTime: FIVE_MINUTES_MS,
+});
 
 queryClient.getQueryCache().subscribe((event) => {
   const query = event?.query;

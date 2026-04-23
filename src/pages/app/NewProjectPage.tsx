@@ -7,10 +7,18 @@ import { Input } from "@/components/ui/input";
 import { api, type GithubRepo } from "@/lib/api";
 import { useDelayedSkeleton } from "@/hooks/useDelayedSkeleton";
 import { toast } from "sonner";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { queryKeys } from "@/lib/query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { authMeQueryOptions, queryKeys } from "@/lib/query";
+import {
+  filterRepos,
+  getRepoCounts,
+  getRepoEmptyStateCopy,
+  isOwnedRepo,
+  type RepoOwnershipFilter,
+  type RepoVisibilityFilter,
+} from "@/lib/github-repos";
 import { cn } from "@/lib/utils";
-import { EmptyState, PageFrame, PageHeader, RepoCard, SkeletonPanel, Stepper, SurfaceCard } from "@/components/platform/PlatformUI";
+import { EmptyState, PageFrame, PageHeader, RepoCard, RepoFilterTabs, SkeletonPanel, Stepper, SurfaceCard } from "@/components/platform/PlatformUI";
 
 const REPO_BATCH_SIZE = 10;
 const REPO_CACHE_KEY = "launchly:github_repos:first_page:v1";
@@ -40,10 +48,13 @@ export default function NewProjectPage() {
   const navigate = useNavigate();
   const [deployingRepoId, setDeployingRepoId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  const [repoOwnership, setRepoOwnership] = useState<RepoOwnershipFilter>("all");
+  const [repoVisibility, setRepoVisibility] = useState<RepoVisibilityFilter>("all");
   const [selectedRepo, setSelectedRepo] = useState<GithubRepo | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const queryClient = useQueryClient();
   const cachedFirstPage = useMemo(() => readCachedFirstPage(), []);
+  const { data: currentUser } = useQuery(authMeQueryOptions);
 
   const {
     data,
@@ -100,13 +111,19 @@ export default function NewProjectPage() {
     return () => timers.forEach(window.clearTimeout);
   }, [selectedRepo]);
 
+  const currentUsername = currentUser?.github_username;
+  const repoCounts = useMemo(() => getRepoCounts(repos, currentUsername), [repos, currentUsername]);
   const filtered = useMemo(
-    () => repos.filter((repo) =>
-      repo.name.toLowerCase().includes(search.toLowerCase()) ||
-      (repo.description || "").toLowerCase().includes(search.toLowerCase())
-    ),
-    [repos, search]
+    () => filterRepos(repos, search, repoOwnership, repoVisibility, currentUsername),
+    [repos, search, repoOwnership, repoVisibility, currentUsername]
   );
+  const repoEmptyState = getRepoEmptyStateCopy(repoOwnership, repoVisibility, search);
+
+  const resetRepoFilters = () => {
+    setSearch("");
+    setRepoOwnership("all");
+    setRepoVisibility("all");
+  };
 
   const deployRepo = async (repo: GithubRepo) => {
     try {
@@ -115,6 +132,7 @@ export default function NewProjectPage() {
       setCurrentStep(4);
       await api.post("/deploy", {
         repo_name: repo.name,
+        repo_full_name: repo.full_name,
         branch: repo.default_branch || "main",
       });
       await Promise.all([
@@ -163,6 +181,16 @@ export default function NewProjectPage() {
         </SurfaceCard>
       </div>
 
+      <div className="mb-6">
+        <RepoFilterTabs
+          ownership={repoOwnership}
+          visibility={repoVisibility}
+          counts={repoCounts}
+          onOwnershipChange={setRepoOwnership}
+          onVisibilityChange={setRepoVisibility}
+        />
+      </div>
+
       {selectedRepo && (
         <SurfaceCard className="mb-6 p-5">
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -194,9 +222,9 @@ export default function NewProjectPage() {
         />
       ) : filtered.length === 0 ? (
         <EmptyState
-          title="No repositories found"
-          description="Connect GitHub, wait for the background sync, or adjust your search query."
-          action={<Button onClick={() => setSearch("")} variant="outline">Clear search</Button>}
+          title={repoEmptyState.title}
+          description={repoEmptyState.description}
+          action={<Button onClick={resetRepoFilters} variant="outline">{repoEmptyState.actionLabel}</Button>}
         />
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
@@ -204,6 +232,7 @@ export default function NewProjectPage() {
             <motion.div key={repo.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.03, 0.36) }}>
               <RepoCard
                 repo={repo}
+                ownership={isOwnedRepo(repo, currentUsername) ? "owner" : "collaborator"}
                 onImport={() => {
                   setSelectedRepo(repo);
                   void deployRepo(repo);
