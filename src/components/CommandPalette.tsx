@@ -72,7 +72,7 @@ export const CommandPalette = ({ open, onOpenChange }: CommandPaletteProps) => {
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading="Navigation">
-          <CommandItem onSelect={() => run(() => navigate("/app"))}>
+          <CommandItem onSelect={() => run(() => navigate("/app/overview"))}>
             <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
           </CommandItem>
           <CommandItem onSelect={() => run(() => navigate("/app/projects"))}>

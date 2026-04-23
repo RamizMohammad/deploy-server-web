@@ -16,7 +16,7 @@ import { FolderGit2, Globe, LayoutDashboard, LogOut, Rocket, ScrollText, Search,
 import { useLocation, useNavigate } from "react-router-dom";
 
 const navItems = [
-  { title: "Overview", url: "/app", icon: LayoutDashboard },
+  { title: "Overview", url: "/app/overview", icon: LayoutDashboard },
   { title: "Projects", url: "/app/projects", icon: FolderGit2 },
   { title: "Domains", url: "/app/domains", icon: Globe },
   { title: "Logs", url: "/app/logs", icon: ScrollText },
@@ -76,7 +76,7 @@ export function AppSidebar({ onOpenCommandPalette }: AppSidebarProps) {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      end={item.url === "/app"}
+                      end={item.url === "/app/overview"}
                       className="rounded-lg text-muted-foreground transition hover:bg-white/[0.04] hover:text-foreground"
                       activeClassName="border border-primary/20 bg-[linear-gradient(135deg,rgba(14,165,233,0.18),rgba(139,92,246,0.13))] text-foreground shadow-[0_12px_40px_rgba(14,165,233,0.08)]"
                     >
