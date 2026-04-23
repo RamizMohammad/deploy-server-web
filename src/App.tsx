@@ -211,6 +211,7 @@ const App = () => {
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/app" element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route index element={<AppIndexRoute />} />
+            <Route path="overview" element={<DashboardOverview />} />
             <Route path="projects" element={<ProjectsList />} />
             <Route path="projects/:id" element={<ProjectDetailPage />} />
             <Route path="new" element={<NewProjectPage />} />
