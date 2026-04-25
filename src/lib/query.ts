@@ -1,5 +1,5 @@
 import { QueryClient, keepPreviousData, queryOptions } from "@tanstack/react-query";
-import { api, type AuthUser, type Deployment, type DeploymentLogsResponse, type GithubRepo, type Project } from "@/lib/api";
+import { api, type AuthUser, type Deployment, type DeploymentLogsResponse, type GithubRepoPage, type Project } from "@/lib/api";
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
 const ONE_MINUTE_MS = 60 * 1000;
@@ -117,7 +117,7 @@ queryClient.getQueryCache().subscribe((event) => {
 
 export const githubReposQueryOptions = queryOptions({
   queryKey: queryKeys.githubRepos,
-  queryFn: () => api.get<GithubRepo[]>("/auth/github/repos"),
+  queryFn: () => api.get<GithubRepoPage>("/auth/github/repos"),
   staleTime: FIVE_MINUTES_MS,
   gcTime: 15 * ONE_MINUTE_MS,
   placeholderData: keepPreviousData,

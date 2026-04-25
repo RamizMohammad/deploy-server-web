@@ -221,6 +221,11 @@ export interface GithubRepo {
   };
 }
 
+export interface GithubRepoPage {
+  items: GithubRepo[];
+  next_cursor: string | null;
+}
+
 export interface AuthUser {
   id: string;
   email: string;
