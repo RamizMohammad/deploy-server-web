@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "https://server.api.launchly.systems").replace(/\/$/, "");
+const API_BASE = (import.meta.env.VITE_API_BASE_URL).replace(/\/$/, "");
 const AUTH_TOKEN_KEY = "deployx_token";
 const LEGACY_AUTH_TOKEN_KEYS = ["token"];
 const AUTH_RELATED_CACHE_KEYS = [
