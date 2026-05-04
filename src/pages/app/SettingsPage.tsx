@@ -1,15 +1,16 @@
-﻿import { useState } from "react";
+﻿import { ChangeEvent, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Github, Mail, AlertTriangle, User, Bell, Trash2, LogOut, RefreshCcw } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Github, Mail, AlertTriangle, User, Bell, Trash2, LogOut, RefreshCcw, Upload, LoaderCircle } from "lucide-react";
 import { PageFrame, PageHeader, SurfaceCard } from "@/components/platform/PlatformUI";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
-import { authMeQueryOptions } from "@/lib/query";
-import { loginWithGithub } from "@/lib/api";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { authMeQueryOptions, queryClient, queryKeys } from "@/lib/query";
+import { api, loginWithGithub, type AuthUser } from "@/lib/api";
 
 function Section({
   title,
@@ -64,6 +65,7 @@ export default function SettingsPage() {
   const [emailNotif, setEmailNotif] = useState(true);
   const [deployNotif, setDeployNotif] = useState(true);
   const [marketingNotif, setMarketingNotif] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { logout } = useAuth();
   const { data: user, isLoading: userLoading } = useQuery(authMeQueryOptions);
   const username = user?.github_username || (userLoading ? "Loading..." : "Not connected");
@@ -71,8 +73,55 @@ export default function SettingsPage() {
   const profileInitial = (user?.github_username || user?.email || "L").slice(0, 1).toUpperCase();
   const githubConnected = Boolean(user?.github_username);
 
+  const uploadImageMutation = useMutation({
+    mutationFn: async (selectedFile: File) => {
+      const formData = new FormData();
+      formData.append("file", selectedFile);
+      return api.postForm<{
+        ok: boolean;
+        image_token: string;
+        image_url: string;
+      }>("/auth/me/image", formData);
+    },
+    onSuccess: (payload) => {
+      queryClient.setQueryData<AuthUser | undefined>(queryKeys.authMe, (currentUser) =>
+        currentUser
+          ? {
+              ...currentUser,
+              image_token: payload.image_token,
+              image_url: payload.image_url,
+            }
+          : currentUser
+      );
+      toast.success("Profile picture updated.");
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to upload profile picture.");
+    },
+  });
+
   const handleSignOut = () => {
     logout();
+  };
+
+  const handleProfileImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleProfileImageSelected = async (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!selectedFile) {
+      return;
+    }
+
+    if (!selectedFile.type.startsWith("image/")) {
+      toast.error("Please choose an image file.");
+      return;
+    }
+
+    await uploadImageMutation.mutateAsync(selectedFile);
   };
 
   return (
@@ -87,12 +136,36 @@ export default function SettingsPage() {
         <Section title="Profile" description="Your personal information." delay={0.04}>
           <div className="space-y-5">
             <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-[linear-gradient(135deg,hsl(199,89%,48%),hsl(265,80%,60%))] text-base font-bold text-background shadow-[0_0_30px_rgba(14,165,233,0.3)]">
-                {profileInitial}
-              </div>
-              <div>
+              <Avatar className="h-14 w-14 rounded-2xl border border-primary/20 bg-[linear-gradient(135deg,hsl(199,89%,48%),hsl(265,80%,60%))] shadow-[0_0_30px_rgba(14,165,233,0.3)]">
+                {user?.image_url ? <AvatarImage src={user.image_url} alt={`${username} profile`} className="object-cover" /> : null}
+                <AvatarFallback className="rounded-2xl bg-transparent text-base font-bold text-background">
+                  {profileInitial}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
                 <p className="text-sm font-semibold text-foreground">{username}</p>
                 <p className="text-xs text-muted-foreground">Free plan • Workspace owner</p>
+              </div>
+              <div className="flex flex-col items-start gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleProfileImageSelected}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleProfileImageClick}
+                  disabled={uploadImageMutation.isPending}
+                  className="gap-2 border-zinc-800 bg-zinc-950 hover:bg-zinc-900"
+                >
+                  {uploadImageMutation.isPending ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                  {user?.image_url ? "Change photo" : "Upload photo"}
+                </Button>
+                <p className="text-xs text-muted-foreground">PNG, JPG, WEBP, or GIF</p>
               </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
