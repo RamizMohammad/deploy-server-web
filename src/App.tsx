@@ -2,11 +2,9 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
-import { api, type GithubRepo } from "@/lib/api";
-import { projectsQueryOptions, queryClient, queryKeys } from "@/lib/query";
-import { type InfiniteData, useQuery } from "@tanstack/react-query";
+import { projectsQueryOptions } from "@/lib/query";
+import { useQuery } from "@tanstack/react-query";
 import { Rocket } from "lucide-react";
-import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AppLayout } from "./components/AppLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -22,24 +20,6 @@ import AuthCallback from "./pages/AuthCallback";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
-
-const REPO_BATCH_SIZE = 10;
-const REPO_CACHE_KEY = "launchly:github_repos:first_page:v1";
-const REPO_CACHE_TTL_MS = 5 * 60 * 1000;
-
-function persistFirstRepoBatch(repos: GithubRepo[]) {
-  try {
-    localStorage.setItem(
-      REPO_CACHE_KEY,
-      JSON.stringify({
-        repos: repos.slice(0, REPO_BATCH_SIZE),
-        updatedAt: Date.now(),
-      })
-    );
-  } catch {
-    // no-op
-  }
-}
 
 const AuthCheckingScreen = () => (
   <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#070A0F]">
@@ -91,67 +71,6 @@ const AppIndexRoute = () => {
 };
 
 const App = () => {
-  const { isAuthenticated } = useAuth();
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      return;
-    }
-
-    const reposKey = [...queryKeys.githubRepos, "infinite", REPO_BATCH_SIZE] as const;
-    let cancelled = false;
-
-    const warmFirstRepoPage = async () => {
-      const cached = queryClient.getQueryData<InfiniteData<GithubRepo[]>>(reposKey);
-      const pages = cached?.pages ? [...cached.pages] : [];
-
-      if (!cached && pages.length > 0) {
-        queryClient.setQueryData(reposKey, {
-          pageParams: pages.map((_, index) => index + 1),
-          pages,
-        });
-      }
-
-      const firstCachedPage = pages[0];
-      if (firstCachedPage && firstCachedPage.length > 0) {
-        return;
-      }
-
-      const cachedFirstBatchRaw = localStorage.getItem(REPO_CACHE_KEY);
-      if (cachedFirstBatchRaw) {
-        try {
-          const parsed = JSON.parse(cachedFirstBatchRaw) as { repos?: GithubRepo[]; updatedAt?: number };
-          if (Array.isArray(parsed.repos) && parsed.repos.length > 0 && typeof parsed.updatedAt === "number" && Date.now() - parsed.updatedAt < REPO_CACHE_TTL_MS) {
-            queryClient.setQueryData(reposKey, {
-              pageParams: [1],
-              pages: [parsed.repos],
-            });
-            return;
-          }
-        } catch {
-          // no-op
-        }
-      }
-
-      try {
-        const batch = await api.get<GithubRepo[]>(`/auth/github/repos?page=1&per_page=${REPO_BATCH_SIZE}`);
-        if (cancelled) return;
-        persistFirstRepoBatch(batch);
-        queryClient.setQueryData(reposKey, {
-          pageParams: [1],
-          pages: [batch],
-        });
-      } catch {
-        // Repo import should stay lazy if warm-up fails.
-      }
-    };
-
-    void warmFirstRepoPage();
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated]);
-
   return (
     <TooltipProvider>
       <Toaster />

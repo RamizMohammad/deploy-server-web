@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle2, Clock, Code2, FolderGit2, GitBranch, Loader2, Plus, Search, ShieldCheck, Sparkles, Terminal } from "lucide-react";
@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { api, type GithubRepo } from "@/lib/api";
 import { useDelayedSkeleton } from "@/hooks/useDelayedSkeleton";
+import { usePaginatedRepos } from "@/hooks/usePaginatedRepos";
 import { cn } from "@/lib/utils";
 import {
-  authMeQueryOptions,
   deploymentsQueryOptions,
   projectsQueryOptions,
   queryKeys,
@@ -24,7 +24,7 @@ import {
   type RepoVisibilityFilter,
 } from "@/lib/github-repos";
 import { createRepoDeployPayload } from "@/lib/deploy";
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   EmptyState,
@@ -38,31 +38,10 @@ import {
   SurfaceCard,
 } from "@/components/platform/PlatformUI";
 
-const REPO_BATCH_SIZE = 10;
-const REPO_CACHE_KEY = "launchly:github_repos:first_page:v1";
 const importSteps = ["Select Repo", "Detect Framework", "Configure Build", "Environment", "Deploy"];
 
-function readCachedFirstPage(): GithubRepo[] {
-  try {
-    const raw = localStorage.getItem(REPO_CACHE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as GithubRepo[] | { repos?: GithubRepo[] };
-    if (Array.isArray(parsed)) return parsed;
-    return Array.isArray(parsed?.repos) ? parsed.repos : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeCachedFirstPage(repos: GithubRepo[]) {
-  try {
-    localStorage.setItem(REPO_CACHE_KEY, JSON.stringify({ repos: repos.slice(0, REPO_BATCH_SIZE), updatedAt: Date.now() }));
-  } catch {
-    // Storage can fail in private browsing; the app should still work.
-  }
-}
-
 export default function ProjectsList() {
+  const [activeTab, setActiveTab] = useState("projects");
   const [search, setSearch] = useState("");
   const [repoSearch, setRepoSearch] = useState("");
   const [repoOwnership, setRepoOwnership] = useState<RepoOwnershipFilter>("owned");
@@ -72,9 +51,7 @@ export default function ProjectsList() {
   const [deployingRepoId, setDeployingRepoId] = useState<number | null>(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const cachedFirstPage = useMemo(() => readCachedFirstPage(), []);
 
-  const { data: currentUser } = useQuery(authMeQueryOptions);
   const { data: projects, isLoading: projectsLoading } = useQuery(projectsQueryOptions);
   const { data: deployments } = useQuery(deploymentsQueryOptions);
   const projectsList = projects ?? [];
@@ -83,47 +60,17 @@ export default function ProjectsList() {
 
   const {
     data: repoPages,
+    repos,
+    currentUsername,
     isLoading: reposLoading,
     isFetchingNextPage,
     hasNextPage,
-    fetchNextPage,
     isError: reposError,
     refetch: refetchRepos,
-  } = useInfiniteQuery({
-    queryKey: [...queryKeys.githubRepos, "infinite", REPO_BATCH_SIZE],
-    initialPageParam: 1,
-    queryFn: ({ pageParam, signal }) =>
-      api.get<GithubRepo[]>(`/auth/github/repos?page=${pageParam}&per_page=${REPO_BATCH_SIZE}`, { signal }),
-    getNextPageParam: (lastPage, allPages) => (lastPage.length === REPO_BATCH_SIZE ? allPages.length + 1 : undefined),
-    initialData: cachedFirstPage.length > 0 ? { pageParams: [1], pages: [cachedFirstPage] } : undefined,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 15 * 60 * 1000,
-  });
-  const waitingForRepos = reposLoading && !repoPages;
+  } = usePaginatedRepos({ enabled: activeTab === "github" });
+  const waitingForRepos = activeTab === "github" && reposLoading && !repoPages;
   const showProjectsSkeleton = useDelayedSkeleton(projectsLoading && !projects, Boolean(projects));
-  const showReposSkeleton = useDelayedSkeleton(reposLoading && !repoPages, Boolean(repoPages));
-
-  const repos = useMemo(() => {
-    const flattened = repoPages?.pages.flat() ?? [];
-    const seen = new Set<number>();
-    return flattened.filter((repo) => {
-      if (seen.has(repo.id)) return false;
-      seen.add(repo.id);
-      return true;
-    });
-  }, [repoPages]);
-
-  useEffect(() => {
-    if (repos.length > 0) writeCachedFirstPage(repos);
-  }, [repos]);
-
-  useEffect(() => {
-    if (!hasNextPage || isFetchingNextPage) return;
-    const id = window.setTimeout(() => {
-      void fetchNextPage();
-    }, 250);
-    return () => window.clearTimeout(id);
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage, repos.length]);
+  const showReposSkeleton = useDelayedSkeleton(activeTab === "github" && reposLoading && !repoPages, Boolean(repoPages));
 
   useEffect(() => {
     if (!selectedRepo) return;
@@ -151,7 +98,6 @@ export default function ProjectsList() {
     project.repo_url.toLowerCase().includes(search.toLowerCase())
   );
 
-  const currentUsername = currentUser?.github_username;
   const repoCounts = useMemo(() => getRepoCounts(repos, currentUsername), [repos, currentUsername]);
   const filteredRepos = useMemo(
     () => filterRepos(repos, repoSearch, repoOwnership, repoVisibility, currentUsername),
@@ -197,7 +143,7 @@ export default function ProjectsList() {
         }
       />
 
-      <Tabs defaultValue="projects" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="h-11 border border-zinc-800/80 bg-zinc-950/70 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
           <TabsTrigger value="projects" className="data-[state=active]:bg-white/10 data-[state=active]:text-foreground">Your Projects</TabsTrigger>
           <TabsTrigger value="github" className="data-[state=active]:bg-white/10 data-[state=active]:text-foreground">Import from GitHub</TabsTrigger>
@@ -327,6 +273,9 @@ export default function ProjectsList() {
             </div>
           )}
 
+          {activeTab === "github" && hasNextPage && filteredRepos.length > 0 && (
+            <p className="text-center text-xs text-muted-foreground">Scroll down to load more repositories.</p>
+          )}
         </TabsContent>
       </Tabs>
 
