@@ -36,12 +36,13 @@ function clearPersistedAuthCaches() {
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
-  const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    ...options.headers,
-  };
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+  const headers = new Headers(options.headers);
+  if (!isFormData && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
   if (token) {
-    (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   try {
@@ -76,6 +77,8 @@ export const api = {
   get: <T>(endpoint: string, options?: RequestInit) => request<T>(endpoint, options),
   post: <T>(endpoint: string, body?: unknown) =>
     request<T>(endpoint, { method: "POST", body: body ? JSON.stringify(body) : undefined }),
+  postForm: <T>(endpoint: string, formData: FormData) =>
+    request<T>(endpoint, { method: "POST", body: formData }),
   put: <T>(endpoint: string, body?: unknown) =>
     request<T>(endpoint, { method: "PUT", body: body ? JSON.stringify(body) : undefined }),
   delete: <T>(endpoint: string, options?: RequestInit) => request<T>(endpoint, { method: "DELETE", ...options }),
@@ -225,6 +228,8 @@ export interface AuthUser {
   id: string;
   email: string;
   github_username: string | null;
+  image_token: string | null;
+  image_url: string | null;
 }
 
 export interface Deployment {
