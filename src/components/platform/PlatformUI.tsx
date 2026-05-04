@@ -1,15 +1,16 @@
+import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import type React from "react";
 import {
   CheckCircle2,
   CircleDashed,
-  GitBranch,
   Lock,
   XCircle,
   Globe,
   Loader2,
   ArrowUpRight,
   Terminal,
+  Github,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,42 @@ const pageMotion = {
   animate: { opacity: 1, y: 0 },
   transition: { duration: 0.34, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
 };
+
+function getLanguageWatermark(language?: string | null) {
+  if (!language) return "CODE";
+
+  const normalized = language.trim().toLowerCase();
+  const map: Record<string, string> = {
+    javascript: "JS",
+    typescript: "TS",
+    python: "PY",
+    html: "HTML",
+    css: "CSS",
+    shell: "SH",
+    markdown: "MD",
+    dockerfile: "DOCKER",
+    go: "GO",
+    rust: "RS",
+    java: "JAVA",
+    php: "PHP",
+  };
+
+  if (map[normalized]) {
+    return map[normalized];
+  }
+
+  return language.replace(/[^a-z0-9]/gi, "").slice(0, 6).toUpperCase() || "CODE";
+}
+
+function formatUpdatedAt(updatedAt?: string) {
+  if (!updatedAt) return "recently";
+
+  try {
+    return formatDistanceToNow(new Date(updatedAt), { addSuffix: true });
+  } catch {
+    return "recently";
+  }
+}
 
 export function PageFrame({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
@@ -67,7 +104,7 @@ export function SurfaceCard({
       className={cn(
         "group relative overflow-hidden rounded-lg border border-zinc-800/80 bg-zinc-950/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_20px_80px_rgba(0,0,0,0.35)]",
         "before:pointer-events-none before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.035),transparent)]",
-        interactive && "transition duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-[0_24px_90px_rgba(14,165,233,0.12)]",
+        interactive && "transition duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_24px_90px_rgba(14,165,233,0.12)]",
         className
       )}
     >
@@ -76,7 +113,7 @@ export function SurfaceCard({
   );
 
   return interactive ? (
-    <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.2 }}>
+    <motion.div whileHover={{ y: -2, scale: 1.01 }} transition={{ duration: 0.2 }}>
       {content}
     </motion.div>
   ) : (
@@ -215,7 +252,7 @@ export function DeploymentItem({ deployment, onClick }: { deployment: Deployment
 export function RepoCard({
   repo,
   onImport,
-  actionLabel = "Import",
+  actionLabel = "Pull",
   ownership = "owner",
 }: {
   repo: GithubRepo;
@@ -223,29 +260,51 @@ export function RepoCard({
   actionLabel?: string;
   ownership?: "owner" | "collaborator";
 }) {
+  const ownershipLabel = ownership === "owner" ? "Your repository" : "Collaboration";
+  const updatedLabel = formatUpdatedAt(repo.updated_at);
+  const watermark = getLanguageWatermark(repo.language);
+
   return (
-    <SurfaceCard interactive className="p-5">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <GitBranch className="h-4 w-4 text-primary" />
-            <p className="truncate text-sm font-semibold text-foreground">{repo.name}</p>
-            <RepoVisibilityBadge isPrivate={repo.private} />
-            <RepoOwnershipBadge ownership={ownership} />
-          </div>
-          <p className="mt-2 truncate text-xs text-muted-foreground">{repo.full_name}</p>
-          <p className="mt-3 line-clamp-2 min-h-[2.5rem] text-sm leading-5 text-muted-foreground">{repo.description || "No repository description."}</p>
-        </div>
-        <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
+    <SurfaceCard interactive className="h-full p-5 md:p-6">
+      <div className="pointer-events-none absolute right-4 top-3 select-none text-[56px] font-semibold tracking-tight text-white/[0.06] blur-[0.2px] md:text-[72px]">
+        {watermark}
       </div>
-      <div className="mt-5 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-          <span className="rounded-full border border-zinc-800 bg-zinc-900 px-2 py-1">{repo.language || "Code"}</span>
-          <span className="truncate">{repo.default_branch || "main"}</span>
+
+      <div className="flex h-full flex-col gap-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Github className="h-4 w-4 text-primary" />
+              <p className="truncate text-sm font-semibold text-foreground md:text-base">{repo.name}</p>
+              <RepoVisibilityBadge isPrivate={repo.private} />
+              <RepoOwnershipBadge ownership={ownership} />
+            </div>
+            <p className="mt-2 truncate text-xs text-muted-foreground md:text-sm">{repo.full_name}</p>
+          </div>
+          <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
         </div>
-        <Button size="sm" onClick={onImport} className="h-8 rounded-md bg-foreground text-background transition hover:scale-[1.02] hover:bg-foreground/90">
-          {actionLabel}
-        </Button>
+
+        <div className="mt-auto flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span className="rounded-full border border-zinc-800 bg-zinc-900/90 px-2.5 py-1">{repo.language || "Code"}</span>
+            <span className="rounded-full border border-zinc-800 bg-zinc-900/90 px-2.5 py-1">{repo.default_branch || "main"}</span>
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-zinc-800/80 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-xs text-muted-foreground">
+              <p>{ownershipLabel}</p>
+              <p className="mt-1">Updated {updatedLabel}</p>
+            </div>
+            <Button
+              size="sm"
+              onClick={onImport}
+              className="h-9 gap-2 rounded-md border border-primary/25 bg-primary/10 text-primary transition hover:scale-[1.02] hover:border-primary/40 hover:bg-primary/15 hover:text-primary"
+            >
+              <Github className="h-4 w-4" />
+              {actionLabel}
+            </Button>
+          </div>
+        </div>
       </div>
     </SurfaceCard>
   );
@@ -285,41 +344,26 @@ export function RepoOwnershipBadge({ ownership }: { ownership: "owner" | "collab
 export function RepoFilterTabs({
   ownership,
   visibility,
-  counts,
   onOwnershipChange,
   onVisibilityChange,
 }: {
   ownership: RepoOwnershipFilter;
   visibility: RepoVisibilityFilter;
-  counts: {
-    owned: number;
-    collaborations: number;
-    ownedPublic: number;
-    ownedPrivate: number;
-    collaborationPublic: number;
-    collaborationPrivate: number;
-  };
   onOwnershipChange: (value: RepoOwnershipFilter) => void;
   onVisibilityChange: (value: RepoVisibilityFilter) => void;
 }) {
-  const ownershipOptions: Array<{ value: RepoOwnershipFilter; label: string; count: number }> = [
-    { value: "owned", label: "Owned", count: counts.owned },
-    { value: "collaborations", label: "Collaborations", count: counts.collaborations },
+  const ownershipOptions: Array<{ value: RepoOwnershipFilter; label: string }> = [
+    { value: "owned", label: "Owned" },
+    { value: "collaborations", label: "Collaborations" },
   ];
 
-  const visibilityOptions: Array<{ value: RepoVisibilityFilter; label: string; count: number }> =
-    ownership === "owned"
-      ? [
-          { value: "public", label: "Public", count: counts.ownedPublic },
-          { value: "private", label: "Private", count: counts.ownedPrivate },
-        ]
-      : [
-          { value: "public", label: "Public", count: counts.collaborationPublic },
-          { value: "private", label: "Private", count: counts.collaborationPrivate },
-        ];
+  const visibilityOptions: Array<{ value: RepoVisibilityFilter; label: string }> = [
+    { value: "public", label: "Public" },
+    { value: "private", label: "Private" },
+  ];
 
   return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
       <div className="inline-flex h-11 w-full max-w-xl items-center rounded-lg border border-zinc-800/80 bg-zinc-950/70 p-1">
         {ownershipOptions.map((option) => (
           <button
@@ -327,29 +371,27 @@ export function RepoFilterTabs({
             type="button"
             onClick={() => onOwnershipChange(option.value)}
             className={cn(
-              "flex min-w-0 flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm transition",
+              "flex min-w-0 flex-1 items-center justify-center rounded-md px-3 py-2 text-sm transition",
               ownership === option.value ? "bg-white/10 text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <span className="truncate">{option.label}</span>
-            <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] text-muted-foreground">{option.count}</span>
           </button>
         ))}
       </div>
 
-      <div className="inline-flex h-10 items-center rounded-lg border border-zinc-800/80 bg-zinc-950/70 p-1">
+      <div className="inline-flex h-10 items-center self-start rounded-lg border border-zinc-800/80 bg-zinc-950/70 p-1">
         {visibilityOptions.map((option) => (
           <button
             key={option.value}
             type="button"
             onClick={() => onVisibilityChange(option.value)}
             className={cn(
-              "inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition",
+              "inline-flex items-center rounded-md px-4 py-1.5 text-sm transition",
               visibility === option.value ? "bg-white/10 text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >
             <span>{option.label}</span>
-            <span className="rounded-full border border-zinc-700 px-2 py-0.5 text-[10px] text-muted-foreground">{option.count}</span>
           </button>
         ))}
       </div>

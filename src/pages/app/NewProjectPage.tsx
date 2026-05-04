@@ -12,7 +12,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query";
 import {
   filterRepos,
-  getRepoCounts,
   getRepoEmptyStateCopy,
   isOwnedRepo,
   type RepoOwnershipFilter,
@@ -59,7 +58,6 @@ export default function NewProjectPage() {
     return () => timers.forEach(window.clearTimeout);
   }, [selectedRepo]);
 
-  const repoCounts = useMemo(() => getRepoCounts(repos, currentUsername), [repos, currentUsername]);
   const filtered = useMemo(
     () => filterRepos(repos, search, repoOwnership, repoVisibility, currentUsername),
     [repos, search, repoOwnership, repoVisibility, currentUsername]
@@ -92,7 +90,7 @@ export default function NewProjectPage() {
   };
 
   return (
-    <PageFrame className="max-w-6xl">
+    <PageFrame className="max-w-none px-6 md:px-8 xl:px-12 2xl:px-16">
       <button onClick={() => navigate("/app/projects")} className="mb-6 flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back to projects
       </button>
@@ -104,7 +102,7 @@ export default function NewProjectPage() {
       />
 
       <div className="mb-6">
-        <div className="relative">
+        <div className="relative w-full max-w-xl">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder="Search repositories..."
@@ -119,7 +117,6 @@ export default function NewProjectPage() {
         <RepoFilterTabs
           ownership={repoOwnership}
           visibility={repoVisibility}
-          counts={repoCounts}
           onOwnershipChange={setRepoOwnership}
           onVisibilityChange={setRepoVisibility}
         />
@@ -161,9 +158,9 @@ export default function NewProjectPage() {
           action={<Button onClick={resetRepoFilters} variant="outline">{repoEmptyState.actionLabel}</Button>}
         />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {filtered.map((repo, index) => (
-            <motion.div key={repo.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.03, 0.36) }}>
+            <motion.div key={repo.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.03, 0.36) }} className="h-full">
               <RepoCard
                 repo={repo}
                 ownership={isOwnedRepo(repo, currentUsername) ? "owner" : "collaborator"}
@@ -171,7 +168,7 @@ export default function NewProjectPage() {
                   setSelectedRepo(repo);
                   void deployRepo(repo);
                 }}
-                actionLabel={deployingRepoId === repo.id ? "Deploying" : "Deploy"}
+                actionLabel={deployingRepoId === repo.id ? "Pulling" : "Pull"}
               />
             </motion.div>
           ))}
