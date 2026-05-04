@@ -17,7 +17,6 @@ import {
 } from "@/lib/query";
 import {
   filterRepos,
-  getRepoCounts,
   getRepoEmptyStateCopy,
   isOwnedRepo,
   type RepoOwnershipFilter,
@@ -98,7 +97,6 @@ export default function ProjectsList() {
     project.repo_url.toLowerCase().includes(search.toLowerCase())
   );
 
-  const repoCounts = useMemo(() => getRepoCounts(repos, currentUsername), [repos, currentUsername]);
   const filteredRepos = useMemo(
     () => filterRepos(repos, repoSearch, repoOwnership, repoVisibility, currentUsername),
     [repos, repoSearch, repoOwnership, repoVisibility, currentUsername]
@@ -131,7 +129,7 @@ export default function ProjectsList() {
   };
 
   return (
-    <PageFrame>
+    <PageFrame className="max-w-none px-6 md:px-8 xl:px-12 2xl:px-16">
       <PageHeader
         eyebrow="Projects"
         title="Deploy from GitHub"
@@ -208,7 +206,7 @@ export default function ProjectsList() {
 
         <TabsContent value="github" className="space-y-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="relative max-w-md flex-1">
+            <div className="relative w-full max-w-xl flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search repositories..."
@@ -222,7 +220,6 @@ export default function ProjectsList() {
           <RepoFilterTabs
             ownership={repoOwnership}
             visibility={repoVisibility}
-            counts={repoCounts}
             onOwnershipChange={setRepoOwnership}
             onVisibilityChange={setRepoVisibility}
           />
@@ -236,25 +233,21 @@ export default function ProjectsList() {
               action={<Button onClick={() => refetchRepos()} variant="outline">Retry GitHub sync</Button>}
             />
           ) : filteredRepos.length > 0 ? (
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
               {filteredRepos.map((repo, index) => (
                 <motion.div
                   key={repo.id}
                   initial={{ opacity: 0, y: 14 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(index * 0.03, 0.36) }}
+                  className="h-full"
                 >
                   <RepoCard
                     repo={repo}
                     ownership={isOwnedRepo(repo, currentUsername) ? "owner" : "collaborator"}
                     onImport={() => setSelectedRepo(repo)}
-                    actionLabel="Configure"
+                    actionLabel="Pull"
                   />
-                  <div className="mt-2 flex items-center gap-3 px-1 text-[11px] text-muted-foreground">
-                    <span>{isOwnedRepo(repo, currentUsername) ? "Your repository" : "Collaboration"}</span>
-                    <span className="h-1 w-1 rounded-full bg-zinc-700" />
-                    <span>Updated {new Date(repo.updated_at).toLocaleDateString()}</span>
-                  </div>
                 </motion.div>
               ))}
             </div>
