@@ -266,44 +266,42 @@ export function RepoCard({
 
   return (
     <SurfaceCard interactive className="h-full p-5 md:p-6">
-      <div className="pointer-events-none absolute right-4 top-3 select-none text-[56px] font-semibold tracking-tight text-white/[0.06] blur-[0.2px] md:text-[72px]">
+      <div className="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 select-none text-[72px] font-semibold tracking-tight text-white/[0.05] blur-[0.2px] md:text-[92px]">
         {watermark}
       </div>
 
-      <div className="flex h-full flex-col gap-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
+      <div className="flex h-full flex-col gap-5 lg:flex-row lg:items-stretch lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-4">
             <div className="flex flex-wrap items-center gap-2.5">
               <Github className="h-4 w-4 text-primary" />
               <p className="truncate text-sm font-semibold text-foreground md:text-base">{repo.name}</p>
               <RepoVisibilityBadge isPrivate={repo.private} />
               <RepoOwnershipBadge ownership={ownership} />
             </div>
-            <p className="mt-2 truncate text-xs text-muted-foreground md:text-sm">{repo.full_name}</p>
+            <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
           </div>
-          <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
-        </div>
+          <p className="mt-2 truncate text-xs text-muted-foreground md:text-sm">{repo.full_name}</p>
 
-        <div className="mt-auto flex flex-col gap-4">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="rounded-full border border-zinc-800 bg-zinc-900/90 px-2.5 py-1">{repo.language || "Code"}</span>
             <span className="rounded-full border border-zinc-800 bg-zinc-900/90 px-2.5 py-1">{repo.default_branch || "main"}</span>
           </div>
+        </div>
 
-          <div className="flex flex-col gap-3 border-t border-zinc-800/80 pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-xs text-muted-foreground">
-              <p>{ownershipLabel}</p>
-              <p className="mt-1">Updated {updatedLabel}</p>
-            </div>
-            <Button
-              size="sm"
-              onClick={onImport}
-              className="h-9 gap-2 rounded-md border border-primary/25 bg-primary/10 text-primary transition hover:scale-[1.02] hover:border-primary/40 hover:bg-primary/15 hover:text-primary"
-            >
-              <Github className="h-4 w-4" />
-              {actionLabel}
-            </Button>
+        <div className="flex flex-col justify-between gap-4 border-t border-zinc-800/80 pt-4 lg:min-w-[180px] lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+          <div className="text-xs text-muted-foreground">
+            <p>{ownershipLabel}</p>
+            <p className="mt-1">Updated {updatedLabel}</p>
           </div>
+          <Button
+            size="sm"
+            onClick={onImport}
+            className="h-9 gap-2 self-start rounded-md border border-primary/25 bg-primary/10 text-primary transition hover:scale-[1.02] hover:border-primary/40 hover:bg-primary/15 hover:text-primary lg:self-end"
+          >
+            <Github className="h-4 w-4" />
+            {actionLabel}
+          </Button>
         </div>
       </div>
     </SurfaceCard>
