@@ -6,6 +6,10 @@ const AUTH_RELATED_CACHE_KEYS = [
   "launchly:deployments:v1",
   "launchly:github_repos:first_page:v1",
   "launchly:github_repos:pages:v1",
+  "launchly:github_repos:first_page:v2:owned:public",
+  "launchly:github_repos:first_page:v2:owned:private",
+  "launchly:github_repos:first_page:v2:collaborations:public",
+  "launchly:github_repos:first_page:v2:collaborations:private",
 ];
 
 function readStoredToken(): string | null {
