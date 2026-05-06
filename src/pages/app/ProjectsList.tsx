@@ -66,7 +66,7 @@ export default function ProjectsList() {
     hasNextPage,
     isError: reposError,
     refetch: refetchRepos,
-  } = usePaginatedRepos({ enabled: activeTab === "github" });
+  } = usePaginatedRepos({ enabled: activeTab === "github", ownership: repoOwnership, visibility: repoVisibility });
   const waitingForRepos = activeTab === "github" && reposLoading && !repoPages;
   const showProjectsSkeleton = useDelayedSkeleton(projectsLoading && !projects, Boolean(projects));
   const showReposSkeleton = useDelayedSkeleton(activeTab === "github" && reposLoading && !repoPages, Boolean(repoPages));

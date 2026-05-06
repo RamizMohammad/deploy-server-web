@@ -2,21 +2,26 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { api, type GithubRepo } from "@/lib/api";
 import { authMeQueryOptions, queryKeys } from "@/lib/query";
+import type { RepoOwnershipFilter, RepoVisibilityFilter } from "@/lib/github-repos";
 
 const REPO_BATCH_SIZE = 10;
-const REPO_CACHE_KEY = "launchly:github_repos:first_page:v1";
 const REPO_CACHE_TTL_MS = 5 * 60 * 1000;
 const SCROLL_TRIGGER_THRESHOLD = 0.78;
 const MIN_SCROLL_DELTA_PX = 48;
+const VIEWPORT_FILL_PAGE_LIMIT = 3;
 
 type CachedReposPayload = {
   repos?: GithubRepo[];
   updatedAt?: number;
 };
 
-function readCachedFirstPage(): GithubRepo[] {
+function getRepoCacheKey(ownership: RepoOwnershipFilter, visibility: RepoVisibilityFilter) {
+  return `launchly:github_repos:first_page:v2:${ownership}:${visibility}`;
+}
+
+function readCachedFirstPage(ownership: RepoOwnershipFilter, visibility: RepoVisibilityFilter): GithubRepo[] {
   try {
-    const raw = localStorage.getItem(REPO_CACHE_KEY);
+    const raw = localStorage.getItem(getRepoCacheKey(ownership, visibility));
     if (!raw) return [];
 
     const parsed = JSON.parse(raw) as CachedReposPayload | GithubRepo[];
@@ -36,10 +41,14 @@ function readCachedFirstPage(): GithubRepo[] {
   }
 }
 
-function writeCachedFirstPage(repos: GithubRepo[]) {
+function writeCachedFirstPage(
+  ownership: RepoOwnershipFilter,
+  visibility: RepoVisibilityFilter,
+  repos: GithubRepo[]
+) {
   try {
     localStorage.setItem(
-      REPO_CACHE_KEY,
+      getRepoCacheKey(ownership, visibility),
       JSON.stringify({
         repos: repos.slice(0, REPO_BATCH_SIZE),
         updatedAt: Date.now(),
@@ -52,21 +61,27 @@ function writeCachedFirstPage(repos: GithubRepo[]) {
 
 type UsePaginatedReposOptions = {
   enabled: boolean;
+  ownership: RepoOwnershipFilter;
+  visibility: RepoVisibilityFilter;
 };
 
-export function usePaginatedRepos({ enabled }: UsePaginatedReposOptions) {
-  const cachedFirstPage = useMemo(() => readCachedFirstPage(), []);
+export function usePaginatedRepos({ enabled, ownership, visibility }: UsePaginatedReposOptions) {
+  const cachedFirstPage = useMemo(
+    () => readCachedFirstPage(ownership, visibility),
+    [ownership, visibility]
+  );
   const requestInFlightRef = useRef(false);
   const hasUserScrolledRef = useRef(false);
   const lastTriggeredScrollTopRef = useRef(0);
+  const viewportFillCountRef = useRef(0);
   const { data: currentUser } = useQuery(authMeQueryOptions);
 
   const query = useInfiniteQuery({
-    queryKey: [...queryKeys.githubRepos, "infinite", REPO_BATCH_SIZE],
+    queryKey: [...queryKeys.githubRepos, "infinite", ownership, visibility, REPO_BATCH_SIZE],
     initialPageParam: 1,
     queryFn: ({ pageParam, signal }) =>
       api.get<GithubRepo[]>(
-        `/auth/github/repos?page=${pageParam}&per_page=${REPO_BATCH_SIZE}`,
+        `/auth/github/repos?page=${pageParam}&per_page=${REPO_BATCH_SIZE}&ownership=${ownership}&visibility=${visibility}`,
         { signal }
       ),
     getNextPageParam: (lastPage, allPages) =>
@@ -92,9 +107,9 @@ export function usePaginatedRepos({ enabled }: UsePaginatedReposOptions) {
 
   useEffect(() => {
     if (repos.length > 0) {
-      writeCachedFirstPage(repos);
+      writeCachedFirstPage(ownership, visibility, repos);
     }
-  }, [repos]);
+  }, [ownership, visibility, repos]);
 
   const requestNextPage = useCallback(() => {
     if (
@@ -105,11 +120,11 @@ export function usePaginatedRepos({ enabled }: UsePaginatedReposOptions) {
       query.isLoading ||
       query.isFetching
     ) {
-      return;
+      return Promise.resolve();
     }
 
     requestInFlightRef.current = true;
-    void query
+    return query
       .fetchNextPage()
       .catch(() => {
         // Query error state handles the UI.
@@ -124,6 +139,47 @@ export function usePaginatedRepos({ enabled }: UsePaginatedReposOptions) {
     query.isFetching,
     query.isFetchingNextPage,
     query.isLoading,
+  ]);
+
+  useEffect(() => {
+    hasUserScrolledRef.current = false;
+    lastTriggeredScrollTopRef.current = 0;
+    viewportFillCountRef.current = 0;
+    requestInFlightRef.current = false;
+  }, [enabled, ownership, visibility]);
+
+  useEffect(() => {
+    if (
+      !enabled ||
+      !query.data ||
+      !query.hasNextPage ||
+      query.isFetchingNextPage ||
+      query.isLoading ||
+      query.isFetching ||
+      viewportFillCountRef.current >= VIEWPORT_FILL_PAGE_LIMIT
+    ) {
+      return;
+    }
+
+    const doc = document.documentElement;
+    const scrollHeight = Math.max(doc.scrollHeight, document.body.scrollHeight);
+    const viewportHeight = window.innerHeight;
+
+    if (scrollHeight > viewportHeight + 24) {
+      return;
+    }
+
+    viewportFillCountRef.current += 1;
+    void requestNextPage();
+  }, [
+    enabled,
+    query.data,
+    query.hasNextPage,
+    query.isFetching,
+    query.isFetchingNextPage,
+    query.isLoading,
+    requestNextPage,
+    repos.length,
   ]);
 
   useEffect(() => {
@@ -154,7 +210,7 @@ export function usePaginatedRepos({ enabled }: UsePaginatedReposOptions) {
       }
 
       lastTriggeredScrollTopRef.current = scrollTop;
-      requestNextPage();
+      void requestNextPage();
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });

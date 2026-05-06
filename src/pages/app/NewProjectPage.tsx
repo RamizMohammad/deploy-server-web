@@ -43,7 +43,7 @@ export default function NewProjectPage() {
     isFetchingNextPage,
     hasNextPage,
     refetch,
-  } = usePaginatedRepos({ enabled: true });
+  } = usePaginatedRepos({ enabled: true, ownership: repoOwnership, visibility: repoVisibility });
   const waitingForRepos = isLoading && !data;
   const showSkeleton = useDelayedSkeleton(isLoading && !data, Boolean(data));
 
