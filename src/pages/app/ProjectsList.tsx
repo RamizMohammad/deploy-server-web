@@ -129,26 +129,26 @@ export default function ProjectsList() {
   };
 
   return (
-    <PageFrame className="max-w-none px-6 md:px-8 xl:px-12 2xl:px-16">
+    <PageFrame>
       <PageHeader
         eyebrow="Projects"
         title="Deploy from GitHub"
         description="Manage production apps, import repositories, and watch deployments move through the pipeline."
         action={
-          <Button onClick={() => navigate("/app/new")} className="gap-2 rounded-lg bg-foreground text-background transition hover:scale-[1.02] hover:bg-foreground/90">
+          <Button onClick={() => navigate("/app/new")} className="w-full gap-2 rounded-lg bg-foreground text-background transition hover:scale-[1.02] hover:bg-foreground/90 sm:w-auto">
             <Plus className="h-4 w-4" /> New Project
           </Button>
         }
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="h-11 border border-zinc-800/80 bg-zinc-950/70 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-          <TabsTrigger value="projects" className="data-[state=active]:bg-white/10 data-[state=active]:text-foreground">Your Projects</TabsTrigger>
-          <TabsTrigger value="github" className="data-[state=active]:bg-white/10 data-[state=active]:text-foreground">Import from GitHub</TabsTrigger>
+        <TabsList className="flex h-auto w-full flex-wrap border border-zinc-800/80 bg-zinc-950/70 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:w-auto">
+          <TabsTrigger value="projects" className="min-w-[140px] flex-1 data-[state=active]:bg-white/10 data-[state=active]:text-foreground sm:flex-none">Your Projects</TabsTrigger>
+          <TabsTrigger value="github" className="min-w-[140px] flex-1 data-[state=active]:bg-white/10 data-[state=active]:text-foreground sm:flex-none">Import from GitHub</TabsTrigger>
         </TabsList>
 
         <TabsContent value="projects" className="space-y-5">
-          <div className="relative max-w-md">
+          <div className="relative w-full max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search projects..."
@@ -171,21 +171,21 @@ export default function ProjectsList() {
                   onClick={() => navigate(`/app/projects/${project.id}`)}
                   className="group text-left"
                 >
-                  <SurfaceCard interactive className="px-6 py-5">
-                    <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-                      <div className="flex min-w-0 items-center gap-4">
+                  <SurfaceCard interactive className="px-4 py-4 sm:px-6 sm:py-5">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
                         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary">
                           <FolderGit2 className="h-5 w-5" />
                         </div>
                         <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2.5">
-                            <h3 className="truncate text-base font-semibold text-foreground transition group-hover:text-primary">{project.repo_name}</h3>
+                            <h3 className="break-all text-base font-semibold text-foreground transition group-hover:text-primary">{project.repo_name}</h3>
                             <StatusBadge status={latestStatusByProject.get(project.repo_name) || "queued"} />
                           </div>
-                          <p className="mt-1 truncate font-mono text-xs text-muted-foreground">{project.repo_url}</p>
+                          <p className="mt-1 break-all font-mono text-xs text-muted-foreground">{project.repo_url}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-5 text-xs text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
                         <span className="inline-flex items-center gap-1"><GitBranch className="h-3.5 w-3.5" />{project.branch || "main"}</span>
                         <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{new Date(project.created_at).toLocaleDateString()}</span>
                         <ArrowRight className="h-4 w-4 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
@@ -233,7 +233,7 @@ export default function ProjectsList() {
               action={<Button onClick={() => refetchRepos()} variant="outline">Retry GitHub sync</Button>}
             />
           ) : filteredRepos.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
               {filteredRepos.map((repo, index) => (
                 <motion.div
                   key={repo.id}

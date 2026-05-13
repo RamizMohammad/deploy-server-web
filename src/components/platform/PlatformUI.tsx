@@ -61,7 +61,7 @@ function formatUpdatedAt(updatedAt?: string) {
 
 export function PageFrame({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <motion.div {...pageMotion} className={cn("mx-auto w-full max-w-7xl px-6 py-8 md:px-10", className)}>
+    <motion.div {...pageMotion} className={cn("w-full px-4 py-6 sm:px-6 lg:px-8 xl:px-10 2xl:px-12", className)}>
       {children}
     </motion.div>
   );
@@ -79,13 +79,13 @@ export function PageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-      <div>
+    <div className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <div className="min-w-0">
         {eyebrow && <p className="mb-2 text-xs font-medium uppercase tracking-[0.18em] text-primary/80">{eyebrow}</p>}
-        <h1 className="text-3xl font-bold text-foreground md:text-4xl">{title}</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">{description}</p>
+        <h1 className="break-words text-3xl font-bold leading-tight text-foreground md:text-4xl xl:text-[2.75rem]">{title}</h1>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground md:text-base">{description}</p>
       </div>
-      {action}
+      {action ? <div className="w-full sm:w-auto lg:shrink-0">{action}</div> : null}
     </div>
   );
 }
@@ -265,23 +265,23 @@ export function RepoCard({
   const watermark = getLanguageWatermark(repo.language);
 
   return (
-    <SurfaceCard interactive className="h-full p-5 md:p-6">
-      <div className="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 select-none text-[72px] font-semibold tracking-tight text-white/[0.05] blur-[0.2px] md:text-[92px]">
+    <SurfaceCard interactive className="h-full p-4 sm:p-5 lg:p-6">
+      <div className="pointer-events-none absolute right-4 top-1/2 hidden -translate-y-1/2 select-none text-[72px] font-semibold tracking-tight text-white/[0.05] blur-[0.2px] md:block md:text-[92px]">
         {watermark}
       </div>
 
-      <div className="flex h-full flex-col gap-5 lg:flex-row lg:items-stretch lg:justify-between">
+      <div className="flex h-full flex-col gap-4 lg:flex-row lg:items-stretch lg:justify-between">
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-2.5">
               <Github className="h-4 w-4 text-primary" />
-              <p className="truncate text-sm font-semibold text-foreground md:text-base">{repo.name}</p>
+              <p className="min-w-0 break-all text-sm font-semibold text-foreground md:text-base">{repo.name}</p>
               <RepoVisibilityBadge isPrivate={repo.private} />
               <RepoOwnershipBadge ownership={ownership} />
             </div>
             <ArrowUpRight className="h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition group-hover:opacity-100" />
           </div>
-          <p className="mt-2 truncate text-xs text-muted-foreground md:text-sm">{repo.full_name}</p>
+          <p className="mt-2 break-all text-xs text-muted-foreground md:text-sm">{repo.full_name}</p>
 
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span className="rounded-full border border-zinc-800 bg-zinc-900/90 px-2.5 py-1">{repo.language || "Code"}</span>
@@ -289,7 +289,7 @@ export function RepoCard({
           </div>
         </div>
 
-        <div className="flex flex-col justify-between gap-4 border-t border-zinc-800/80 pt-4 lg:min-w-[180px] lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+        <div className="flex flex-col justify-between gap-4 border-t border-zinc-800/80 pt-4 sm:flex-row sm:items-end sm:justify-between lg:min-w-[190px] lg:flex-col lg:items-stretch lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
           <div className="text-xs text-muted-foreground">
             <p>{ownershipLabel}</p>
             <p className="mt-1">Updated {updatedLabel}</p>
@@ -297,7 +297,7 @@ export function RepoCard({
           <Button
             size="sm"
             onClick={onImport}
-            className="h-9 gap-2 self-start rounded-md border border-primary/25 bg-primary/10 text-primary transition hover:scale-[1.02] hover:border-primary/40 hover:bg-primary/15 hover:text-primary lg:self-end"
+            className="h-9 w-full gap-2 rounded-md border border-primary/25 bg-primary/10 text-primary transition hover:scale-[1.02] hover:border-primary/40 hover:bg-primary/15 hover:text-primary sm:w-auto lg:self-end"
           >
             <Github className="h-4 w-4" />
             {actionLabel}
@@ -361,15 +361,15 @@ export function RepoFilterTabs({
   ];
 
   return (
-    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-      <div className="inline-flex h-11 w-full max-w-xl items-center rounded-lg border border-zinc-800/80 bg-zinc-950/70 p-1">
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="inline-flex h-auto w-full flex-wrap items-center rounded-lg border border-zinc-800/80 bg-zinc-950/70 p-1 lg:max-w-xl">
         {ownershipOptions.map((option) => (
           <button
             key={option.value}
             type="button"
             onClick={() => onOwnershipChange(option.value)}
             className={cn(
-              "flex min-w-0 flex-1 items-center justify-center rounded-md px-3 py-2 text-sm transition",
+              "flex min-w-[140px] flex-1 items-center justify-center rounded-md px-3 py-2 text-sm transition sm:min-w-0",
               ownership === option.value ? "bg-white/10 text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -378,14 +378,14 @@ export function RepoFilterTabs({
         ))}
       </div>
 
-      <div className="inline-flex h-10 items-center self-start rounded-lg border border-zinc-800/80 bg-zinc-950/70 p-1">
+      <div className="inline-flex h-auto w-full flex-wrap items-center self-start rounded-lg border border-zinc-800/80 bg-zinc-950/70 p-1 sm:w-auto">
         {visibilityOptions.map((option) => (
           <button
             key={option.value}
             type="button"
             onClick={() => onVisibilityChange(option.value)}
             className={cn(
-              "inline-flex items-center rounded-md px-4 py-1.5 text-sm transition",
+              "inline-flex min-w-[120px] flex-1 items-center justify-center rounded-md px-4 py-1.5 text-sm transition sm:min-w-0 sm:flex-none",
               visibility === option.value ? "bg-white/10 text-foreground" : "text-muted-foreground hover:text-foreground"
             )}
           >

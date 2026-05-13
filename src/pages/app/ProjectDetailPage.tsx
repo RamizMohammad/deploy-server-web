@@ -142,10 +142,10 @@ export default function ProjectDetailPage() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="h-11 border border-zinc-800/80 bg-zinc-950/70 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-          <TabsTrigger value="overview" className="data-[state=active]:bg-white/10 data-[state=active]:text-foreground">Overview</TabsTrigger>
-          <TabsTrigger value="deployments" className="data-[state=active]:bg-white/10 data-[state=active]:text-foreground">Deployments</TabsTrigger>
-          <TabsTrigger value="logs" className="data-[state=active]:bg-white/10 data-[state=active]:text-foreground">Logs</TabsTrigger>
+        <TabsList className="flex h-auto w-full flex-wrap border border-zinc-800/80 bg-zinc-950/70 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:w-auto">
+          <TabsTrigger value="overview" className="min-w-[120px] flex-1 data-[state=active]:bg-white/10 data-[state=active]:text-foreground sm:flex-none">Overview</TabsTrigger>
+          <TabsTrigger value="deployments" className="min-w-[120px] flex-1 data-[state=active]:bg-white/10 data-[state=active]:text-foreground sm:flex-none">Deployments</TabsTrigger>
+          <TabsTrigger value="logs" className="min-w-[120px] flex-1 data-[state=active]:bg-white/10 data-[state=active]:text-foreground sm:flex-none">Logs</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -156,9 +156,9 @@ export default function ProjectDetailPage() {
                 <InfoRow label="Repository" value={project.repo_name} mono />
                 <InfoRow label="Branch" value={project.branch || "main"} mono />
                 <InfoRow label="Created" value={new Date(project.created_at).toLocaleString()} />
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <span className="text-muted-foreground">Source</span>
-                  <span className="max-w-[70%] truncate font-mono text-xs text-foreground">{project.repo_url}</span>
+                  <span className="max-w-full break-all font-mono text-xs text-foreground sm:max-w-[70%]">{project.repo_url}</span>
                 </div>
               </div>
             </SurfaceCard>

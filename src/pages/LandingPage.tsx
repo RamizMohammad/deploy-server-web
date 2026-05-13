@@ -121,14 +121,14 @@ export default function LandingPage() {
       <div className="fixed inset-0 opacity-[0.015] pointer-events-none z-50" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E\")" }} />
 
       {/* Nav */}
-      <nav className="fixed top-0 w-full z-40 border-b border-border/20 bg-background/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+      <nav className="fixed top-0 z-40 w-full border-b border-border/20 bg-background/80 backdrop-blur-xl">
+        <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2">
             <Rocket className="h-5 w-5 text-primary" />
             <span className="font-bold text-foreground tracking-tight">Launchly</span>
           </div>
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" onClick={goToLogin}>
+          <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+            <Button variant="ghost" size="sm" className="px-3 text-muted-foreground hover:text-foreground" onClick={goToLogin}>
               Sign In
             </Button>
             <Button size="sm" className="bg-foreground text-background hover:bg-foreground/90" onClick={goToLogin}>
@@ -139,8 +139,8 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section ref={heroRef} className="relative pt-32 pb-20 px-6">
-        <motion.div style={{ y: heroY, opacity: heroOpacity }} className="max-w-4xl mx-auto text-center">
+      <section ref={heroRef} className="relative px-4 pb-20 pt-32 sm:px-6">
+        <motion.div style={{ y: heroY, opacity: heroOpacity }} className="mx-auto w-full max-w-5xl text-center">
           {/* Glow */}
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
 
@@ -152,34 +152,34 @@ export default function LandingPage() {
           </motion.div>
 
           <motion.h1 custom={1} variants={fadeUp} initial="hidden" animate="visible"
-            className="text-5xl md:text-7xl font-bold tracking-tight text-foreground leading-[1.1] mb-6"
+            className="mb-6 text-4xl font-bold leading-[1.1] tracking-tight text-foreground sm:text-5xl md:text-6xl xl:text-7xl"
           >
             Deploy from GitHub{" "}
             <span className="gradient-text">in seconds</span>
           </motion.h1>
 
           <motion.p custom={2} variants={fadeUp} initial="hidden" animate="visible"
-            className="text-lg text-muted-foreground max-w-xl mx-auto mb-10"
+            className="mx-auto mb-10 max-w-3xl text-base leading-8 text-muted-foreground sm:text-lg"
           >
             Push your code. We handle the rest. Automatic builds, global CDN, instant rollbacks — the deployment platform developers love.
           </motion.p>
 
-          <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible" className="flex items-center justify-center gap-4 mb-16">
-            <Button size="lg" className="bg-foreground text-background hover:bg-foreground/90 gap-2" onClick={goToLogin}>
+          <motion.div custom={3} variants={fadeUp} initial="hidden" animate="visible" className="mb-16 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+            <Button size="lg" className="w-full gap-2 bg-foreground text-background hover:bg-foreground/90 sm:w-auto" onClick={goToLogin}>
               Start Deploying <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" className="gap-2 border-border/50 hover:bg-secondary/50">
+            <Button size="lg" variant="outline" className="w-full gap-2 border-border/50 hover:bg-secondary/50 sm:w-auto">
               <Github className="h-4 w-4" /> View on GitHub
             </Button>
           </motion.div>
 
           {/* Pipeline animation */}
           <motion.div custom={4} variants={fadeUp} initial="hidden" animate="visible"
-            className="flex items-center justify-center gap-2 md:gap-4 mb-4"
+            className="mb-4 flex flex-wrap items-center justify-center gap-2 md:gap-4"
           >
             {PIPELINE_STEPS.map((step, i) => (
               <div key={step} className="flex items-center gap-2 md:gap-4">
-                <div className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all duration-500 ${
+                <div className={`min-w-[132px] rounded-lg border px-4 py-2 text-center text-sm font-medium transition-all duration-500 ${
                   i <= activePipeline
                     ? "border-primary/50 bg-primary/10 text-primary shadow-[0_0_20px_-8px_hsl(var(--primary)/0.5)]"
                     : "border-border/30 bg-secondary/30 text-muted-foreground"
@@ -196,13 +196,13 @@ export default function LandingPage() {
       </section>
 
       {/* Live terminal */}
-      <section className="py-20 px-6">
+      <section className="px-4 py-20 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="max-w-4xl mx-auto"
+          className="mx-auto w-full max-w-5xl"
         >
           <h2 className="text-3xl font-bold text-foreground text-center mb-3">Watch it deploy</h2>
           <p className="text-muted-foreground text-center mb-10">Real-time build logs. See every step of your deployment.</p>
@@ -211,8 +211,8 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto">
+      <section className="px-4 py-20 sm:px-6">
+        <div className="mx-auto w-full max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -223,7 +223,7 @@ export default function LandingPage() {
             <p className="text-muted-foreground">Everything you need to ship with confidence.</p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-5">
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {FEATURES.map((f, i) => (
               <motion.div
                 key={f.title}
@@ -246,8 +246,8 @@ export default function LandingPage() {
       </section>
 
       {/* Developer experience */}
-      <section className="py-20 px-6">
-        <div className="max-w-5xl mx-auto">
+      <section className="px-4 py-20 sm:px-6">
+        <div className="mx-auto w-full max-w-6xl">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -258,7 +258,7 @@ export default function LandingPage() {
             <p className="text-muted-foreground">Deploy from the terminal or the browser. Your choice.</p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid gap-6 lg:grid-cols-2">
             <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="glass rounded-xl overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-3 border-b border-border/30">
                 <Terminal className="h-4 w-4 text-muted-foreground" />
@@ -298,7 +298,7 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-24 px-6">
+      <section className="px-4 py-24 sm:px-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
@@ -314,8 +314,8 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/20 py-8 px-6">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
+      <footer className="border-t border-border/20 px-4 py-8 sm:px-6">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <Rocket className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">Launchly</span>

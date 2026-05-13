@@ -5,14 +5,14 @@ import { toast } from "sonner";
 
 export default function DomainsPage() {
   return (
-    <PageFrame className="max-w-5xl">
+    <PageFrame>
       <PageHeader
         eyebrow="Networking"
         title="Domains"
         description="Prepare custom domains, SSL, and routing controls for deployed applications."
       />
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)] 2xl:grid-cols-[minmax(0,1.35fr)_360px]">
         <EmptyState
           title="Domain management is coming next"
           description="Your backend currently exposes projects, deployments, logs, and GitHub repo APIs. This page is ready for the domain API when it lands."

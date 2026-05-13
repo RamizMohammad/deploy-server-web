@@ -48,7 +48,7 @@ export default function LogsPage() {
           description="Deploy a project and Launchly will stream build logs, warnings, and success events here."
         />
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(320px,380px)_minmax(0,1fr)] 2xl:grid-cols-[minmax(340px,420px)_minmax(0,1fr)]">
           <SurfaceCard className="overflow-hidden">
             <div className="flex items-center justify-between border-b border-zinc-800/80 px-5 py-4">
               <div>
@@ -81,7 +81,7 @@ export default function LogsPage() {
             )}
             {activeDeployment && (
               <SurfaceCard className="p-4">
-                <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-muted-foreground">
+                <div className="flex flex-col gap-3 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                   <div className="flex flex-wrap items-center gap-4">
                     <StatusBadge status={activeDeployment.status} />
                     <span className="inline-flex items-center gap-1"><Clock className="h-3.5 w-3.5" />{new Date(activeDeployment.created_at).toLocaleString()}</span>
