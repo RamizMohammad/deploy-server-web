@@ -90,7 +90,7 @@ export default function NewProjectPage() {
   };
 
   return (
-    <PageFrame className="max-w-none px-6 md:px-8 xl:px-12 2xl:px-16">
+    <PageFrame>
       <button onClick={() => navigate("/app/projects")} className="mb-6 flex items-center gap-2 text-sm text-muted-foreground transition hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back to projects
       </button>
@@ -158,7 +158,7 @@ export default function NewProjectPage() {
           action={<Button onClick={resetRepoFilters} variant="outline">{repoEmptyState.actionLabel}</Button>}
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
           {filtered.map((repo, index) => (
             <motion.div key={repo.id} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.03, 0.36) }} className="h-full">
               <RepoCard

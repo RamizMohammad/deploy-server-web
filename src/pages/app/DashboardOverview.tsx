@@ -87,7 +87,7 @@ export default function DashboardOverview() {
             ))}
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+          <div className="grid gap-6 2xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
             <SurfaceCard className="overflow-hidden">
               <div className="flex items-center justify-between border-b border-zinc-800/80 px-5 py-4">
                 <div>
@@ -108,7 +108,7 @@ export default function DashboardOverview() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.18 + index * 0.04 }}
                       onClick={() => navigate(`/app/projects/${project.id}`)}
-                      className="group grid w-full grid-cols-[auto_1fr_auto] items-center gap-4 px-5 py-4 text-left transition hover:bg-white/[0.035]"
+                      className="group grid w-full grid-cols-[auto_minmax(0,1fr)] gap-4 px-5 py-4 text-left transition hover:bg-white/[0.035] sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:items-center"
                     >
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-primary/15 bg-primary/10 text-primary">
                         <Globe2 className="h-4 w-4" />
@@ -117,7 +117,7 @@ export default function DashboardOverview() {
                         <p className="truncate text-sm font-medium text-foreground group-hover:text-primary">{project.repo_name}</p>
                         <p className="mt-1 truncate font-mono text-xs text-muted-foreground">{project.repo_url}</p>
                       </div>
-                      <div className="hidden text-right sm:block">
+                      <div className="col-span-2 text-left sm:col-span-1 sm:text-right">
                         <StatusBadge status={projectStatusMap.get(project.repo_name) || "queued"} />
                         <p className="mt-1 text-xs text-muted-foreground">{project.branch || "main"}</p>
                       </div>
