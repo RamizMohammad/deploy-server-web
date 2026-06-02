@@ -320,7 +320,7 @@ export default function LandingPage() {
             <Rocket className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">Launchly</span>
           </div>
-          <p className="text-xs text-muted-foreground">© 2026 Launchly. All rights reserved.</p>
+          <p className="text-xs text-muted-foreground">© 2026 Launchly. Mohammad Ramiz & Adnan Rasool - All rights reserved.</p>
         </div>
       </footer>
     </div>
